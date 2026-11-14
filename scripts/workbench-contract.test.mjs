@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import { execFileSync } from 'node:child_process';
+import { execFileSync, spawnSync } from 'node:child_process';
 import test from 'node:test';
 
 const root = path.resolve(new URL('..', import.meta.url).pathname);
@@ -18,7 +18,8 @@ test('domain project and task lifecycle use isolated paths', () => {
   const taskRoot = path.join(dir, 'tasks/wordpress/sample-site');
   const task = fs.readdirSync(taskRoot)[0];
   const identifier = `wordpress/sample-site/${task}`;
-  assert.throws(() => execFileSync(process.execPath, ['scripts/task-transition.mjs', identifier, 'implementing'], { cwd: root, env: localEnv }));
+  const invalid = spawnSync(process.execPath, ['scripts/task-transition.mjs', identifier, 'implementing'], { cwd: root, env: localEnv, encoding: 'utf8' });
+  assert.notEqual(invalid.status, 0);
   execFileSync(process.execPath, ['scripts/task-transition.mjs', identifier, 'awaiting-approval'], { cwd: root, env: localEnv });
   assert.match(fs.readFileSync(path.join(taskRoot, task, 'TASK.md'), 'utf8'), /\| Status \| awaiting-approval \|/);
   fs.rmSync(dir, { recursive: true, force: true });
