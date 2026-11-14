@@ -1,35 +1,134 @@
 # Pi Workbench
 
-Vendor-neutral configuration and workflows for Pi. Claude Code and Codex are optional clients/providers, not runtime dependencies.
+Pi Workbench is a portable, vendor-neutral harness for Pi. It provides reusable roles, skills, domain packs, workflow orchestration, capability-based model routing, local project standards, task lifecycle management, and an independent provider-adapter generator.
 
-## Principles
+It does not require Claude Code or Codex. Provider credentials, OAuth state, project facts, task state, and machine-specific paths remain outside this repository.
 
-- `domains/wordpress/standards/checklists` contains WordPress rules; real project facts are local overlays and are never bundled here.
-- Workflows select model capabilities, not hardcoded provider/model IDs.
-- Third-party provider adapters are independent packages named `pi-<name>`; none is bundled here.
-- Credentials, OAuth state, local paths, and machine-specific settings stay outside Git.
+## Architecture
 
-## Bootstrap
+```text
+pi-workbench/
+├── adapters/       Provider adapter template and contract
+├── config/         Configuration examples
+├── domains/        Domain packs, currently WordPress
+├── docs/           Routing and usage documentation
+├── extensions/     Pi model router and task workflow extension
+├── scripts/        Installation, validation, task, and adapter commands
+├── skills/         Generic skills such as think and think-advisor
+└── workflows/      Generic prompts and task template
+```
+
+A domain pack owns its domain-specific behavior:
+
+```text
+domains/wordpress/
+├── roles/
+├── skills/
+├── standards/
+└── workflows/
+```
+
+Generic roles and workflow tooling must not duplicate domain rules. Domain standards remain the source of truth for domain-specific checks.
+
+## Requirements
+
+- Node.js 18 or newer
+- npm
+- Pi
+- Git for project workflows
+
+## Install
+
+From the repository:
 
 ```bash
 ./scripts/install.sh
 ./scripts/doctor.sh
-node scripts/verify-workflows.mjs
 ```
 
-## Create an independent provider adapter
+To install this repository as a local Pi package:
 
 ```bash
-node scripts/create-adapter.mjs example-provider ../pi-example-provider
-cd ../pi-example-provider
-npm test
+pi install /path/to/pi-workbench
 ```
 
-The generated project is separate from this repository. Replace its protocol-specific implementation and publish or install it independently. The template includes a Pi provider extension with runtime model discovery via `refreshModels`; use `models.json` instead when the endpoint already speaks a supported API and does not need executable discovery/auth logic.
+The installer creates only local runtime directories. It does not copy credentials or project facts:
 
-## Create and list domain tasks
+```text
+$HOME/.pi/agent       Pi runtime data
+$HOME/.pi/standards   Local standards root
+$HOME/.pi/tasks       Local task workspace
+```
 
-After installing this package in Pi, use the in-session commands:
+Override these locations when needed:
+
+```bash
+PI_AGENT_DIR="$HOME/.config/pi/agent" \
+PI_STANDARDS_DIR="$HOME/.config/pi/standards" \
+PI_TASKS_DIR="$HOME/.config/pi/tasks" \
+./scripts/install.sh
+```
+
+## Local project standards
+
+Project facts are private local overlays. They are never bundled in this repository.
+
+Create a project standards file with the domain-aware command:
+
+```bash
+PI_STANDARDS_DIR="$HOME/.pi/standards" \
+  node scripts/init-project.mjs wordpress sample-site
+```
+
+The result is:
+
+```text
+$HOME/.pi/standards/wordpress/projects/sample-site.md
+```
+
+The command resolves the template from:
+
+```text
+domains/wordpress/standards/projects/PROJECT.template.md
+```
+
+A future domain can provide its own template at the equivalent path:
+
+```text
+domains/laravel/standards/projects/PROJECT.template.md
+```
+
+## Tasks and workflows
+
+Create a domain-aware task after the local project file exists:
+
+```bash
+node scripts/create-task.mjs \
+  wordpress sample-site seo-fix "Fix SEO metadata"
+```
+
+Tasks are stored outside the repository:
+
+```text
+$HOME/.pi/tasks/wordpress/sample-site/YYYY-MM-DD-seo-fix/
+├── TASK.md
+├── 01-plan.md
+├── 02-implement.md
+└── ...
+```
+
+The lifecycle requires planning and explicit approval before implementation:
+
+```text
+planning
+  -> awaiting-approval
+  -> implementing
+  -> reviewing
+  -> fixing / qa / testing / auditing / finishing
+  -> done
+```
+
+Useful Pi commands:
 
 ```text
 /task-init <domain> <project> <slug> <title>
@@ -41,23 +140,106 @@ After installing this package in Pi, use the in-session commands:
 /task-report <domain>/<project>/<date-slug> <NN-step> <summary>
 ```
 
-The command refuses to create a task when the matching local project standards file is missing. CLI equivalents are available:
+CLI equivalents:
 
 ```bash
-node scripts/create-task.mjs wordpress sample-site seo-fix "Fix SEO metadata"
-PI_TASKS_DIR="$HOME/.pi/tasks" node scripts/list-tasks.mjs
-PI_TASKS_DIR="$HOME/.pi/tasks" node scripts/task-transition.mjs wordpress/sample-site/2026-11-14-seo-fix reviewing
+node scripts/list-tasks.mjs
+node scripts/task-transition.mjs \
+  wordpress/sample-site/2026-01-01-seo-fix reviewing
 ```
 
-Lifecycle transitions are validated and invalid jumps are rejected.
+Do not commit, push, post, publish, or open a merge request unless the user explicitly approves it.
 
-## Initialize a local domain project
+## Model routing
 
-Create project facts outside this repository:
+Use the virtual model `router/auto` for capability-based selection:
 
 ```bash
-PI_STANDARDS_DIR="$HOME/.pi/standards" \
-  node scripts/init-project.mjs wordpress sample-site
+pi --model router/auto
 ```
 
-Project facts belong in a private/local standards overlay, not in `pi-workbench`.
+Select a role when needed:
+
+```bash
+PI_ROUTER_ROLE=debugger pi --model router/auto
+PI_ROUTER_ROLE=code-reviewer pi --model router/auto
+```
+
+Optional controls:
+
+```text
+PI_ROUTER_PROVIDER   Restrict selection to one configured provider
+PI_ROUTER_MODEL      Restrict selection to one configured model
+PI_ROUTER_TRACE=1    Log the selected provider and model
+```
+
+The router selects from accessible models using requirements such as reasoning, tools, vision, and context window. It does not bundle provider credentials or assume a specific vendor.
+
+See `docs/model-routing.md` and `docs/model-router-usage.md` for details.
+
+## Independent provider adapters
+
+Pi Workbench does not bundle a provider-specific adapter. Generate one as a separate project:
+
+```bash
+node scripts/create-adapter.mjs example-provider ../pi-example-provider
+cd ../pi-example-provider
+npm test
+```
+
+The generated package follows the `pi-<name>` convention. Replace the protocol-specific implementation, configure credentials outside Git, and install or publish the adapter independently.
+
+Adapter responsibilities:
+
+- Resolve its own URL and credentials.
+- Discover and normalize provider models.
+- Declare provider capabilities.
+- Avoid logging secrets.
+- Leave model selection to Pi Workbench's router.
+
+## Adding a domain
+
+A domain pack should contain only domain-specific behavior:
+
+```text
+domains/<domain>/
+├── roles/
+├── skills/
+├── standards/
+│   └── projects/PROJECT.template.md
+└── workflows/
+```
+
+Add the domain's skills and prompts to the package manifest, provide its standards template, and add its workflow policy if it uses the task extension. Do not place real project files in the repository.
+
+## Development checks
+
+Run all local checks before a release:
+
+```bash
+npm run check
+npm test
+./scripts/doctor.sh
+git diff --check
+```
+
+For a clean installation test, use an isolated home directory or a disposable LXD container. Never modify an existing production or project container for portability testing.
+
+## Security and portability
+
+- Keep API keys, tokens, OAuth state, and private URLs outside Git.
+- Use environment variables or Pi's local authentication store for credentials.
+- Review third-party Pi packages and adapters before installing them.
+- Do not copy local project standards into the portable repository.
+- Do not hardcode user home directories or machine-specific paths.
+- Do not claim provider support until its adapter and runtime behavior have been tested.
+
+## Release checklist
+
+1. Run `npm run check` and `npm test`.
+2. Run `./scripts/doctor.sh`.
+3. Test installation with isolated local directories.
+4. Verify no project facts or secrets are tracked.
+5. Review `git diff --check` and `git status`.
+6. Commit only after explicit approval.
+7. Create a version tag only after the commit is verified.
