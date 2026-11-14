@@ -1,0 +1,17 @@
+# Copy selected values to your shell or a private local environment file.
+# Never commit credentials.
+PI_CONFIG_DIR=/path/to/pi-workbench
+PI_STANDARDS_DIR=$HOME/.pi/standards
+PI_DOMAIN=wordpress
+PI_TASKS_DIR=$HOME/.pi/tasks
+PI_THINK_DIR=$HOME/.pi/think
+
+# Optional router controls:
+# PI_ROUTER_ROLE=debugger
+# PI_ROUTER_PROVIDER=example-provider
+# PI_ROUTER_MODEL=cx/gpt-6.1-sol
+# PI_ROUTER_TRACE=1
+
+# Provider credentials belong here or in Pi auth.json, never in this repository.
+# EXAMPLE_PROVIDER_BASE_URL=https://provider.example/v1
+# EXAMPLE_PROVIDER_API_KEY=

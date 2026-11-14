@@ -1,0 +1,15 @@
+{
+  "mcpServers": {
+    "chrome-devtools": {
+      "command": "npx",
+      "args": ["-y", "chrome-devtools-mcp@latest", "--isolated"],
+      "lifecycle": "lazy"
+    },
+    "figma": {
+      "transport": "streamable-http",
+      "url": "https://mcp.figma.com/mcp",
+      "auth": { "type": "oauth", "clientName": "Pi" },
+      "lifecycle": "eager"
+    }
+  }
+}

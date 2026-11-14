@@ -1,0 +1,13 @@
+{
+  "name": "pi-__NAME__",
+  "version": "0.1.0",
+  "description": "Third-party Pi provider adapter for __NAME__.",
+  "type": "module",
+  "keywords": ["pi-package", "pi-provider-adapter"],
+  "bin": { "pi-__NAME__": "./src/cli.mjs" },
+  "pi": { "extensions": ["./extensions/provider.ts"] },
+  "scripts": {
+    "check": "node ./src/validate.mjs",
+    "test": "node --test ./tests/*.test.mjs"
+  }
+}

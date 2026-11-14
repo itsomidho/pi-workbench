@@ -1,0 +1,18 @@
+{
+  "schemaVersion": 1,
+  "id": "__NAME__",
+  "packageName": "pi-__NAME__",
+  "displayName": "__DISPLAY_NAME__",
+  "protocol": "openai-responses",
+  "baseUrlEnv": "__ENV_PREFIX__BASE_URL",
+  "apiKeyEnv": "__ENV_PREFIX__API_KEY",
+  "catalog": { "enabled": true, "path": "/models" },
+  "capabilities": {
+    "chat": true,
+    "streaming": true,
+    "tools": true,
+    "vision": false,
+    "reasoning": false,
+    "modelCatalog": true
+  }
+}
