@@ -18,7 +18,7 @@ test('domain project and task lifecycle use isolated paths', () => {
   const taskRoot = path.join(dir, 'tasks/wordpress/sample-site');
   const task = fs.readdirSync(taskRoot)[0];
   const identifier = `wordpress/sample-site/${task}`;
-  const invalid = spawnSync(process.execPath, ['scripts/task-transition.mjs', identifier, 'implementing'], { cwd: root, env: localEnv, encoding: 'utf8' });
+  const invalid = spawnSync(process.execPath, ['scripts/task-transition.mjs', identifier, 'implementing'], { cwd: root, env: localEnv, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] });
   assert.notEqual(invalid.status, 0);
   execFileSync(process.execPath, ['scripts/task-transition.mjs', identifier, 'awaiting-approval'], { cwd: root, env: localEnv });
   assert.match(fs.readFileSync(path.join(taskRoot, task, 'TASK.md'), 'utf8'), /\| Status \| awaiting-approval \|/);
@@ -27,7 +27,8 @@ test('domain project and task lifecycle use isolated paths', () => {
 
 test('unknown domains fail without creating files', () => {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'pi-workbench-'));
-  assert.throws(() => execFileSync(process.execPath, ['scripts/init-project.mjs', 'unknown', 'sample'], { cwd: root, env: env(dir) }));
+  const result = spawnSync(process.execPath, ['scripts/init-project.mjs', 'unknown', 'sample'], { cwd: root, env: env(dir), encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] });
+  assert.notEqual(result.status, 0);
   assert.equal(fs.existsSync(path.join(dir, 'standards')), false);
   fs.rmSync(dir, { recursive: true, force: true });
 });
