@@ -23,6 +23,7 @@ Usage:
   piw check
   piw doctor
   piw update [--check|--yes]
+  piw run [pi arguments...]
   piw version
   piw help`);
 }
@@ -41,6 +42,13 @@ if (!group || group === 'help' || group === '--help' || group === '-h') {
 if (group === 'version' || group === '--version' || group === '-v') {
   console.log(version);
   process.exit(0);
+}
+if (group === 'run') {
+  const piArgs = [action && action.startsWith('--') ? action : undefined, ...args].filter(Boolean);
+  run('pi', [
+    ...(piArgs.some((value) => value === '--model' || value.startsWith('--model=')) ? [] : ['--model', 'router/auto']),
+    ...piArgs,
+  ]);
 }
 
 switch (`${group}:${action ?? ''}`) {
@@ -79,6 +87,9 @@ switch (`${group}:${action ?? ''}`) {
   case 'update:--check':
   case 'update:--yes':
     run(process.execPath, ['scripts/update.mjs', ...(action === '--check' || action === '--yes' ? [action, ...args] : args)]);
+    break;
+  case 'run:':
+    run('pi', ['--model', 'router/auto', ...args]);
     break;
   default:
     console.error(`Unknown command: ${group}${action ? ` ${action}` : ''}`);

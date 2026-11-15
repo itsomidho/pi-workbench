@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.3.8 - Unreleased
+
+- Preserve explicit `--model` values passed through `piw run`.
+
+## 0.3.7 - Unreleased
+
+- Add `piw run` as the Workbench entry point with `router/auto` as the default model.
+- Pass through Pi arguments while preserving explicit model selection.
+
 ## 0.3.6 - Unreleased
 
 - Fix `piw update --check` and `piw update --yes` argument routing.
