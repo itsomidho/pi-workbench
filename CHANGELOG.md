@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.3.9 - Unreleased
+
+- Preserve the consumer application directory during `piw update`.
+- Register a temporary copy with Pi so Pi installation cannot empty the source directory.
+
 ## 0.3.8 - Unreleased
 
 - Preserve explicit `--model` values passed through `piw run`.
