@@ -8,13 +8,11 @@ Consumers should install a release archive rather than clone the Git repository.
 export PI_WORKBENCH_HOME="$HOME/.pi-workbench"
 mkdir -p "$PI_WORKBENCH_HOME"
 curl -L \
-  https://github.com/itsomidho/pi-workbench/archive/refs/tags/v0.3.4.tar.gz \
+  https://github.com/itsomidho/pi-workbench/archive/refs/tags/v0.3.5.tar.gz \
   | tar -xz --strip-components=1 -C "$PI_WORKBENCH_HOME"
 
 cd "$PI_WORKBENCH_HOME"
 ./scripts/install.sh
-npm install -g --force "$PI_WORKBENCH_HOME"
-pi install "$PI_WORKBENCH_HOME"
 ```
 
 Verify the installation:

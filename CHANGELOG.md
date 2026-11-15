@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.3.5 - Unreleased
+
+- Make `install.sh` install the `piw` CLI globally and register the Workbench package with Pi.
+
 ## 0.3.4 - Unreleased
 
 - Install Node.js 22 when bootstrapping dependencies so Pi's runtime requirement is satisfied.
