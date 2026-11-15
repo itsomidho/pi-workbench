@@ -5,17 +5,17 @@ Adapters are independent Pi packages. They connect Pi to a provider, discover it
 ## Create
 
 ```bash
-piw adapter create tabdl "$HOME/pi-adapters/pi-tabdl"
+piw adapter create tabdl
 ```
 
-The generated package is independent of `pi-workbench` and is named `pi-tabdl`.
+The generated package is independent of `pi-workbench`, is named `pi-tabdl`, and is stored at `$HOME/.pi-adapters/pi-tabdl` by default.
 
 ## Implement and check
 
 Edit `manifest.json` and `extensions/provider.ts`, then run:
 
 ```bash
-piw adapter check "$HOME/pi-adapters/pi-tabdl"
+piw adapter check "$HOME/.pi-adapters/pi-tabdl"
 ```
 
 The template supports three model catalog modes:
@@ -29,7 +29,7 @@ A model should declare `tools`, `vision`, `reasoning`, `contextWindow`/`context_
 ## Install
 
 ```bash
-piw adapter install "$HOME/pi-adapters/pi-tabdl"
+piw adapter install "$HOME/.pi-adapters/pi-tabdl"
 ```
 
 This validates, packages, installs the npm package, and registers it with Pi. The adapter source remains in its original directory.

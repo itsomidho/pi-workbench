@@ -7,7 +7,7 @@ import { spawnSync } from 'node:child_process';
 
 const [action, ...args] = process.argv.slice(2);
 const configDir = process.env.PI_WORKBENCH_CONFIG_DIR || path.join(os.homedir(), '.config', 'pi-workbench', 'providers');
-const adaptersDir = process.env.PI_ADAPTERS_DIR || path.join(os.homedir(), 'pi-adapters');
+const adaptersDir = process.env.PI_ADAPTERS_DIR || path.join(os.homedir(), '.pi-adapters');
 fs.mkdirSync(configDir, { recursive: true, mode: 0o700 });
 
 function usage() {
@@ -76,7 +76,11 @@ function ask(question, hidden = false) {
 }
 
 if (!action || action === 'help') { usage(); process.exit(0); }
-if (action === 'create') run(process.execPath, [path.join(path.dirname(new URL(import.meta.url).pathname), 'create-adapter.mjs'), ...args], process.cwd());
+if (action === 'create') {
+  const name = args[0];
+  const destination = args[1] || path.join(adaptersDir, `pi-${name}`);
+  run(process.execPath, [path.join(path.dirname(new URL(import.meta.url).pathname), 'create-adapter.mjs'), name, destination], process.cwd());
+}
 if (action === 'check') {
   const { dir } = manifestFor(args[0]);
   run('npm', ['test'], dir);

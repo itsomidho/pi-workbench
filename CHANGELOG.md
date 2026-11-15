@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.5.1 - Unreleased
+
+- Store generated adapters in `$HOME/.pi-adapters` by default.
+- Keep adapter source separate from the Workbench installation and project directories.
+
 ## 0.5.0 - Unreleased
 
 - Add adapter check, install, configure, health, models, list, and remove commands.

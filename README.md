@@ -117,7 +117,7 @@ piw task create wordpress sample-site seo-fix "Fix SEO metadata"
 piw task list
 piw task transition wordpress/sample-site/2026-01-01-seo-fix reviewing
 piw task artifacts context "$HOME/.pi/tasks/wordpress/sample-site/2026-01-01-seo-fix"
-piw adapter create example-provider ../pi-example-provider
+piw adapter create example-provider
 piw check
 piw doctor
 piw version
