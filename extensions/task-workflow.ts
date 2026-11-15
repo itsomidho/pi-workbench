@@ -1,3 +1,4 @@
+import crypto from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
@@ -33,9 +34,20 @@ function replaceField(text: string, field: string, value: string) {
   const pattern = new RegExp(`^(\\| ${field} \\| ).*?( \\|)$`, "m");
   return text.replace(pattern, `$1${value}$2`);
 }
+function stageContext(dir: string, currentStage?: string) {
+  const artifacts = path.join(dir, "artifacts");
+  const sharedFile = path.join(artifacts, "shared-context.json");
+  const briefsDir = path.join(artifacts, "briefs");
+  const briefs = fs.existsSync(briefsDir) ? fs.readdirSync(briefsDir).filter((file) => file.endsWith(".json")).sort() : [];
+  const previous = briefs.filter((file) => !currentStage || file < `${currentStage}.json`).at(-1);
+  return {
+    shared: fs.existsSync(sharedFile) ? JSON.parse(fs.readFileSync(sharedFile, "utf8")) : null,
+    previousBrief: previous ? JSON.parse(fs.readFileSync(path.join(briefsDir, previous), "utf8")) : null,
+  };
+}
 const transitions: Record<string, Set<string>> = {
   planning: new Set(["awaiting-approval", "blocked"]),
-  "awaiting-approval": new Set(["planning", "implementing", "blocked"]),
+  "awaiting-approval": new Set(["planning", "blocked"]),
   implementing: new Set(["reviewing", "blocked"]),
   reviewing: new Set(["fixing", "qa", "testing", "auditing", "finishing", "blocked"]),
   fixing: new Set(["reviewing", "blocked"]),
@@ -43,13 +55,31 @@ const transitions: Record<string, Set<string>> = {
   testing: new Set(["fixing", "auditing", "finishing", "blocked"]),
   auditing: new Set(["fixing", "finishing", "blocked"]),
   finishing: new Set(["done", "blocked"]),
-  blocked: new Set(["planning", "awaiting-approval", "implementing"]),
+  blocked: new Set(["planning", "awaiting-approval"]),
   done: new Set(),
 };
 function transition(text: string, next: string) {
   const current = text.match(/^\| Status \| (.+) \|$/m)?.[1];
   if (!current || !transitions[current]?.has(next)) throw new Error(`Invalid transition: ${current ?? "unknown"} -> ${next}`);
   return { text: replaceField(text, "Status", next), current };
+}
+function approvePlan(target: { dir: string; file: string }) {
+  const text = fs.readFileSync(target.file, "utf8");
+  const current = text.match(/^\| Status \| (.+) \|$/m)?.[1];
+  if (current !== "awaiting-approval") throw new Error(`Approval requires status awaiting-approval; current status is ${current ?? "unknown"}`);
+  const plan = text.match(/## Plan\n([\s\S]*?)(?=\n## |$)/)?.[1]?.trim() ?? "";
+  if (!plan || /^Not approved yet\.?$/i.test(plan)) throw new Error("Cannot approve an empty or unprepared plan");
+  const nextText = replaceField(text, "Status", "implementing").replace("## Decisions and constraints\n", "## Decisions and constraints\n- Plan approved by user through Pi task workflow.\n");
+  const sharedFile = path.join(target.dir, "artifacts", "shared-context.json");
+  if (fs.existsSync(sharedFile)) {
+    const shared = JSON.parse(fs.readFileSync(sharedFile, "utf8"));
+    shared.planVersion = (shared.planVersion ?? 0) + 1;
+    shared.approvedPlanHash = crypto.createHash("sha256").update(plan).digest("hex");
+    shared.status = "implementing";
+    shared.updatedAt = new Date().toISOString();
+    fs.writeFileSync(sharedFile, JSON.stringify(shared, null, 2) + "\n");
+  }
+  fs.writeFileSync(target.file, nextText);
 }
 
 export default function (pi: ExtensionAPI) {
@@ -72,9 +102,10 @@ export default function (pi: ExtensionAPI) {
         ctx.ui.notify(`Task already exists: ${dir}`, "error");
         return;
       }
-      fs.mkdirSync(dir, { recursive: true });
+      fs.mkdirSync(path.join(dir, "artifacts", "briefs"), { recursive: true });
       const task = `# Task: ${titleParts.join(" ")}\n\n| Domain | ${domain} |\n| Project | ${project} |\n| Status | planning |\n| Started | ${date} |\n| Standards | ${projectFile} |\n\n## Brief\n${titleParts.join(" ")}\n\n## Decisions and constraints\n- Pending user decisions.\n\n## Plan\nNot approved yet.\n\n## Files changed\nNone.\n\n## Open findings\nNone.\n\n## Next step\nRead the project standards and prepare the plan.\n`;
       fs.writeFileSync(path.join(dir, "TASK.md"), task);
+      fs.writeFileSync(path.join(dir, "artifacts", "shared-context.json"), JSON.stringify({ schemaVersion: 1, taskId: `${domain}/${project}/${path.basename(dir)}`, domain, project, title: titleParts.join(" "), goal: titleParts.join(" "), acceptanceCriteria: [], scope: { allowed: [], forbidden: [] }, standards: [], planVersion: 0, approvedPlanHash: null, status: "planning", createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() }, null, 2) + "\n");
       ctx.ui.notify(`Created task: ${dir}`, "info");
     },
   });
@@ -105,10 +136,7 @@ export default function (pi: ExtensionAPI) {
       const target = taskFile(args.trim());
       if (!target) { ctx.ui.notify("Usage: /task-approve <domain>/<project>/<date-slug>", "error"); return; }
       try {
-        let text = fs.readFileSync(target.file, "utf8");
-        const result = transition(text, "implementing");
-        text = result.text.replace("## Decisions and constraints\n", "## Decisions and constraints\n- Plan approved by user through Pi task workflow.\n");
-        fs.writeFileSync(target.file, text);
+        approvePlan(target);
         ctx.ui.notify("Task plan approved; status is now implementing.", "info");
       } catch (error) {
         ctx.ui.notify(error instanceof Error ? error.message : String(error), "error");
@@ -161,7 +189,8 @@ export default function (pi: ExtensionAPI) {
       const current = text.match(/^\| Status \| (.+) \|$/m)?.[1];
       if (current !== spec.status) { ctx.ui.notify(`Stage ${stage} requires status ${spec.status}; current status is ${current ?? "unknown"}.`, "error"); return; }
       process.env.PI_ROUTER_ROLE = spec.role;
-      const prompt = `${spec.instruction}\n\nTask folder: ${target.dir}\nLive context: ${target.file}\nStage report: ${path.join(target.dir, `${spec.report}.md`)}\n\nYou own only this stage. Read the live context first, follow the portable workflow, and report evidence. Do not commit, push, post, or perform out-of-scope work.`;
+      const context = stageContext(target.dir, spec.report);
+      const prompt = `${spec.instruction}\n\nTask folder: ${target.dir}\nLive context: ${target.file}\nStage report: ${path.join(target.dir, `${spec.report}.md`)}\nStage handoff brief: ${path.join(target.dir, "artifacts", "briefs", `${spec.report}.json`)}\nShared task context (JSON):\n${JSON.stringify(context.shared)}\nDirect previous-stage brief (JSON):\n${JSON.stringify(context.previousBrief)}\n\nUse only the shared context, the direct previous brief, and relevant evidence. Do not read unrelated reports or the full conversation unless required to verify evidence. You own only this stage. Read the live context first, follow the portable workflow, and report evidence. Do not commit, push, post, or perform out-of-scope work.`;
       pi.sendUserMessage(prompt, { triggerTurn: true, expandPromptTemplates: false });
       ctx.ui.notify(`Started model run for ${stage} using role ${spec.role}.`, "info");
     },

@@ -21,7 +21,12 @@ test('domain project and task lifecycle use isolated paths', () => {
   const invalid = spawnSync(process.execPath, ['scripts/task-transition.mjs', identifier, 'implementing'], { cwd: root, env: localEnv, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] });
   assert.notEqual(invalid.status, 0);
   execFileSync(process.execPath, ['scripts/task-transition.mjs', identifier, 'awaiting-approval'], { cwd: root, env: localEnv });
-  assert.match(fs.readFileSync(path.join(taskRoot, task, 'TASK.md'), 'utf8'), /\| Status \| awaiting-approval \|/);
+  const taskFile = path.join(taskRoot, task, 'TASK.md');
+  let taskText = fs.readFileSync(taskFile, 'utf8').replace('Not approved yet.', '1. Inspect the affected files.\n2. Implement and verify the fix.');
+  fs.writeFileSync(taskFile, taskText);
+  execFileSync(process.execPath, ['scripts/task-approve.mjs', identifier], { cwd: root, env: localEnv });
+  assert.match(fs.readFileSync(taskFile, 'utf8'), /\| Status \| implementing \|/);
+  assert.match(fs.readFileSync(path.join(taskRoot, task, 'artifacts/shared-context.json'), 'utf8'), /approvedPlanHash/);
   fs.rmSync(dir, { recursive: true, force: true });
 });
 

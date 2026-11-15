@@ -33,4 +33,23 @@ const task = template
   .replace('<The user\'s request, verbatim, then a 2–4 line restatement: goal, affected area, acceptance criteria.>', title);
 fs.mkdirSync(dir, { recursive: true });
 fs.writeFileSync(path.join(dir, 'TASK.md'), task);
+const artifactsDir = path.join(dir, 'artifacts', 'briefs');
+fs.mkdirSync(artifactsDir, { recursive: true });
+const sharedContext = {
+  schemaVersion: 1,
+  taskId: path.relative(tasks, dir),
+  domain,
+  project,
+  title,
+  goal: title,
+  acceptanceCriteria: [],
+  scope: { allowed: [], forbidden: [] },
+  standards: [],
+  planVersion: 0,
+  approvedPlanHash: null,
+  status: 'planning',
+  createdAt: new Date().toISOString(),
+  updatedAt: new Date().toISOString(),
+};
+fs.writeFileSync(path.join(dir, 'artifacts', 'shared-context.json'), `${JSON.stringify(sharedContext, null, 2)}\n`);
 console.log(dir);

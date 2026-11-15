@@ -46,10 +46,15 @@ function requirements(request: RouterRequest): Requirements {
   return { ...profile, reasoning: profile.reasoning || inferred };
 }
 
+function satisfies(model: any, wanted: Requirements): boolean {
+  if (model.contextWindow && model.contextWindow < wanted.contextWindowMin) return false;
+  if (wanted.reasoning && model.reasoning !== true) return false;
+  if (wanted.tools && model.api && !["openai-responses", "openai-completions", "anthropic-messages", "google-generative-ai"].includes(model.api)) return false;
+  if (wanted.vision && !model.input?.includes("image")) return false;
+  return true;
+}
 function score(model: any, wanted: Requirements): number {
-  if (model.contextWindow && model.contextWindow < wanted.contextWindowMin) return Number.NEGATIVE_INFINITY;
-  if (wanted.tools && model.api && !["openai-responses", "openai-completions", "anthropic-messages", "google-generative-ai"].includes(model.api)) return Number.NEGATIVE_INFINITY;
-  if (wanted.vision && !model.input?.includes("image")) return Number.NEGATIVE_INFINITY;
+  if (!satisfies(model, wanted)) return Number.NEGATIVE_INFINITY;
   let value = 0;
   if (wanted.reasoning) value += model.reasoning === true ? 100 : -100;
   if (wanted.tools) value += model.compat?.supportsAdditionalTools ? 30 : 0;
@@ -71,7 +76,8 @@ function choose(request: RouterRequest, ctx: ExtensionContext, wanted: Requireme
   if (explicitProvider || explicitModel) {
     const selected = candidates.find((model) =>
       (!explicitProvider || model.provider === explicitProvider) &&
-      (!explicitModel || model.id === explicitModel || `${model.provider}/${model.id}` === explicitModel),
+      (!explicitModel || model.id === explicitModel || `${model.provider}/${model.id}` === explicitModel) &&
+      satisfies(model, wanted),
     );
     if (!selected) throw new Error(`Requested router override is unavailable: ${explicitProvider ?? "*"}/${explicitModel ?? "*"}`);
     return selected;

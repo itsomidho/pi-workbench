@@ -1,6 +1,6 @@
 {
   "name": "pi-workbench",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "private": true,
   "description": "Portable, vendor-neutral Pi configuration, workflows, standards, and adapter tooling.",
   "type": "module",
@@ -12,7 +12,8 @@
   "pi": {
     "extensions": [
       "./extensions/model-router.ts",
-      "./extensions/task-workflow.ts"
+      "./extensions/task-workflow.ts",
+      "./extensions/workflow-orchestrator.ts"
     ],
     "skills": [
       "./skills",

@@ -79,9 +79,11 @@ Common commands:
 
 ```bash
 piw init wordpress sample-site
+piw init-from-think wordpress sample-site seo-fix "$HOME/.pi/think/2026-01-01-seo-fix.md"
 piw task create wordpress sample-site seo-fix "Fix SEO metadata"
 piw task list
 piw task transition wordpress/sample-site/2026-01-01-seo-fix reviewing
+piw task artifacts context "$HOME/.pi/tasks/wordpress/sample-site/2026-01-01-seo-fix"
 piw adapter create example-provider ../pi-example-provider
 piw check
 piw doctor
@@ -128,15 +130,20 @@ node scripts/create-task.mjs \
   wordpress sample-site seo-fix "Fix SEO metadata"
 ```
 
-Tasks are stored outside the repository:
+Tasks are stored outside the repository. Each task has a small shared context and one compact handoff brief per stage:
 
 ```text
 $HOME/.pi/tasks/wordpress/sample-site/YYYY-MM-DD-seo-fix/
 ├── TASK.md
-├── 01-plan.md
-├── 02-implement.md
-└── ...
+└── artifacts/
+    ├── shared-context.json
+    └── briefs/
+        ├── 01-plan.json
+        ├── 02-implement.json
+        └── ...
 ```
+
+A stage should receive only the shared task context, the direct previous-stage brief, and relevant evidence. Full conversation history and unrelated reports should not be forwarded between stages.
 
 The lifecycle requires planning and explicit approval before implementation:
 
@@ -168,6 +175,14 @@ node scripts/list-tasks.mjs
 node scripts/task-transition.mjs \
   wordpress/sample-site/2026-01-01-seo-fix reviewing
 ```
+
+After a plan is approved, start the managed workflow with:
+
+```text
+/task-go <domain>/<project>/<date-slug>
+```
+
+You can resume a paused workflow with `/task-go-resume <domain>/<project>/<date-slug>` or stop after the current stage with `/task-go-stop`. The orchestrator runs implementation, review, bounded fix/review loops, QA, tests, audit, and finish. It pauses when a handoff brief is missing, a maximum fix round is reached, or user input is required. It records response usage in `artifacts/usage.jsonl` and writes `FINAL.md` when the workflow completes.
 
 Do not commit, push, post, publish, or open a merge request unless the user explicitly approves it.
 
@@ -220,18 +235,20 @@ Adapter responsibilities:
 
 ## Adding a domain
 
-A domain pack should contain only domain-specific behavior:
+A domain pack should contain only domain-specific behavior and declare it in `domain.json`:
 
 ```text
 domains/<domain>/
+├── domain.json
 ├── roles/
 ├── skills/
 ├── standards/
 │   └── projects/PROJECT.template.md
-└── workflows/
+├── workflows/
+└── quality-gates.json
 ```
 
-Add the domain's skills and prompts to the package manifest, provide its standards template, and add its workflow policy if it uses the task extension. Do not place real project files in the repository.
+The manifest identifies the domain resources and allows validation without hardcoded paths. Add the domain's skills and prompts to the package manifest, provide its standards template, and add its workflow policy if it uses the task extension. Do not place real project files in the repository.
 
 ## Development checks
 
@@ -258,6 +275,8 @@ For a clean installation test, use an isolated home directory or a disposable LX
 - Do not claim provider support until its adapter and runtime behavior have been tested.
 
 ## Release checklist
+
+The current development line is documented in `CHANGELOG.md`. Version `0.3.0` is the first release line with managed multi-stage orchestration and Pi RPC integration coverage.
 
 1. Run `npm run check` and `npm test`.
 2. Run `./scripts/doctor.sh`.

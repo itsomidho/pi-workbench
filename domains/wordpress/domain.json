@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 1,
+  "id": "wordpress",
+  "name": "WordPress",
+  "roles": "./roles",
+  "skills": "./skills",
+  "standards": "./standards",
+  "workflows": "./workflows",
+  "qualityGates": "./quality-gates.json"
+}
