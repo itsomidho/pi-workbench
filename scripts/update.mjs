@@ -31,21 +31,25 @@ if (!args.has('--yes')) { console.error('Re-run with --yes to install the releas
 const temp = fs.mkdtempSync(path.join(os.tmpdir(), 'pi-workbench-update-'));
 const archive = path.join(temp, 'release.tar.gz');
 const unpacked = path.join(temp, 'package');
-const piSource = path.join(temp, 'pi-source');
+const preserved = path.join(temp, 'preserved');
 fs.mkdirSync(unpacked);
-fs.mkdirSync(piSource);
 try {
   run('curl', ['-fsSL', release.tarball_url, '-o', archive]);
   run('tar', ['-xzf', archive, '--strip-components=1', '-C', unpacked]);
-  run('tar', ['-xzf', archive, '--strip-components=1', '-C', piSource]);
   const installedPackage = JSON.parse(fs.readFileSync(path.join(unpacked, 'package.json'), 'utf8'));
   if (installedPackage.version !== latest) throw new Error('Downloaded archive version does not match release metadata.');
-  run('npm', ['install', '-g', '--force', unpacked]);
-  if (process.env.PI_BIN || capture('sh', ['-c', 'command -v pi || true'])) run('pi', ['install', piSource]);
+  run('npm', ['pack', '--pack-destination', temp, unpacked]);
+  const packageTarball = fs.readdirSync(temp).find((entry) => entry.endsWith('.tgz'));
+  if (!packageTarball) throw new Error('npm did not create an installable package archive.');
+  run('npm', ['install', '-g', '--force', path.join(temp, packageTarball)]);
   const backup = `${root}.backup-${current}`;
   fs.renameSync(root, backup);
   try {
     fs.renameSync(unpacked, root);
+    fs.cpSync(root, preserved, { recursive: true });
+    if (process.env.PI_BIN || capture('sh', ['-c', 'command -v pi || true'])) run('pi', ['install', root]);
+    fs.rmSync(root, { recursive: true, force: true });
+    fs.renameSync(preserved, root);
     fs.rmSync(backup, { recursive: true, force: true });
     console.log(`Updated pi-workbench to ${latest}`);
   } catch (error) {

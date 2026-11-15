@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.4.1 - Unreleased
+
+- Install updates from an npm package archive so the global `piw` binary never points into a deleted temporary directory.
+- Preserve the final application directory while refreshing Pi registration.
+
 ## 0.4.0 - Unreleased
 
 - Preserve the caller's working directory when launching Pi with `piw run`.
