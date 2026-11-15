@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.3.2 - Unreleased
+
+- Fix consumer reinstall guidance when an older global `piw` binary is already present.
+- Ensure the release archive and CLI report the same package version.
+
 ## 0.3.0 - Unreleased
 
 - Added think-note to domain task handoff.

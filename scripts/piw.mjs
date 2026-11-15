@@ -68,10 +68,10 @@ switch (`${group}:${action ?? ''}`) {
   case 'adapter:create':
     run(process.execPath, ['scripts/create-adapter.mjs', ...args]);
     break;
-  case 'check':
+  case 'check:':
     run('npm', ['run', 'check']);
     break;
-  case 'doctor':
+  case 'doctor:':
     run('bash', ['scripts/doctor.sh']);
     break;
   default:

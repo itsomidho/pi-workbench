@@ -49,13 +49,13 @@ Consumers do not need to clone the repository or use Git for installation. Downl
 export PI_WORKBENCH_HOME="$HOME/.pi-workbench"
 mkdir -p "$PI_WORKBENCH_HOME"
 curl -L \
-  https://github.com/itsomidho/pi-workbench/archive/refs/tags/v0.3.0.tar.gz \
+  https://github.com/itsomidho/pi-workbench/archive/refs/tags/v0.3.2.tar.gz \
   | tar -xz --strip-components=1 -C "$PI_WORKBENCH_HOME"
 
 cd "$PI_WORKBENCH_HOME"
 ./scripts/install.sh
-npm install -g .
-pi install .
+npm install -g --force "$PI_WORKBENCH_HOME"
+pi install "$PI_WORKBENCH_HOME"
 
 piw version
 piw doctor
@@ -72,7 +72,7 @@ Contributors can clone the repository and install from the checkout:
 git clone https://github.com/itsomidho/pi-workbench.git
 cd pi-workbench
 ./scripts/install.sh
-npm install -g .
+npm install -g --force .
 pi install .
 ```
 
@@ -303,7 +303,7 @@ For a clean installation test, use an isolated home directory or a disposable LX
 
 ## Release checklist
 
-The current development line is documented in `CHANGELOG.md`. Version `0.3.0` is the first release line with managed multi-stage orchestration and Pi RPC integration coverage.
+The current development line is documented in `CHANGELOG.md`. Version `0.3.0` was the first release line with managed multi-stage orchestration and Pi RPC integration coverage.
 
 1. Run `npm run check` and `npm test`.
 2. Run `./scripts/doctor.sh`.
