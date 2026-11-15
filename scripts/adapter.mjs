@@ -51,25 +51,43 @@ function run(command, commandArgs, cwd, env = process.env) {
   process.exit(0);
 }
 function ask(question, hidden = false) {
+  if (!hidden || !process.stdin.isTTY) {
+    return new Promise((resolve) => {
+      const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
+      process.stdout.write(question);
+      rl.once('line', (answer) => { rl.close(); resolve(answer.trim()); });
+    });
+  }
   return new Promise((resolve) => {
     const input = process.stdin;
     const output = process.stdout;
-    output.write(question);
-    const rl = readline.createInterface({ input, output, terminal: hidden ? false : Boolean(input.isTTY) });
-    let restored = false;
+    let value = '';
     const restore = () => {
-      if (!hidden || restored) return;
-      restored = true;
-      spawnSync('stty', ['echo'], { stdio: ['ignore', 'ignore', 'ignore'] });
+      try { input.setRawMode(false); } catch {}
+      input.pause();
+      input.removeListener('data', onData);
     };
-    if (hidden && input.isTTY) spawnSync('stty', ['-echo'], { stdio: ['ignore', 'ignore', 'ignore'] });
-    rl.once('line', (answer) => {
-      restore();
-      rl.close();
-      output.write(hidden ? '\\n' : '');
-      resolve(answer.trim());
-    });
-    rl.once('close', restore);
+    const onData = (chunk) => {
+      for (const char of chunk.toString()) {
+        if (char === '\\r' || char === '\\n') {
+          restore();
+          output.write('\n');
+          resolve(value.trim());
+          return;
+        }
+        if (char === '\\u0003') {
+          restore();
+          output.write('\n');
+          process.exit(130);
+        }
+        if (char === '\\u007f') value = value.slice(0, -1);
+        else if (char >= ' ') value += char;
+      }
+    };
+    output.write(question);
+    input.setRawMode(true);
+    input.resume();
+    input.on('data', onData);
   });
 }
 

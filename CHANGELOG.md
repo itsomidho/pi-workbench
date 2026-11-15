@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.5.5 - Unreleased
+
+- Replace readline hidden input with raw terminal input so API keys are never echoed.
+- Fix literal `\\n` output after hidden credential prompts.
+
 ## 0.5.4 - Unreleased
 
 - Prevent hidden adapter API keys from being echoed by readline in interactive terminals.
