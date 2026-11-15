@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.4.3 - Unreleased
+
+- Load WordPress workflow skills, including `merge-request-review`, in Pi.
+
 ## 0.4.2 - Unreleased
 
 - Fix the primary `piw run` path to preserve the caller's working directory.

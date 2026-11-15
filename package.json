@@ -1,6 +1,6 @@
 {
   "name": "pi-workbench",
-  "version": "0.4.2",
+  "version": "0.4.3",
   "private": true,
   "description": "Portable, vendor-neutral Pi configuration, workflows, standards, and adapter tooling.",
   "type": "module",
@@ -17,7 +17,8 @@
     ],
     "skills": [
       "./skills",
-      "./domains/wordpress/skills"
+      "./domains/wordpress/skills",
+      "./domains/wordpress/workflows"
     ],
     "prompts": [
       "./workflows/*.md",
