@@ -39,29 +39,56 @@ Generic roles and workflow tooling must not duplicate domain rules. Domain stand
 
 ## Install
 
-From the repository:
+There are two supported installation modes.
+
+### Consumer installation from GitHub
+
+Consumers do not need to clone the repository or use Git for installation. Download a release archive into a dedicated application directory. The archive contains no `.git` directory or repository metadata.
 
 ```bash
+export PI_WORKBENCH_HOME="$HOME/.pi-workbench"
+mkdir -p "$PI_WORKBENCH_HOME"
+curl -L \
+  https://github.com/itsomidho/pi-workbench/archive/refs/tags/v0.3.0.tar.gz \
+  | tar -xz --strip-components=1 -C "$PI_WORKBENCH_HOME"
+
+cd "$PI_WORKBENCH_HOME"
 ./scripts/install.sh
-./scripts/doctor.sh
 npm install -g .
-piw --help
+pi install .
+
+piw version
+piw doctor
+piw check
 ```
 
-The `piw` command is the supported CLI for daily project, task, adapter, and validation operations. The underlying scripts remain available for automation.
+This keeps the installed application in `$HOME/.pi-workbench` and does not place Git data there. The `piw` command is the supported CLI for daily project, task, adapter, and validation operations.
 
-To install this repository as a local Pi package:
+### Development installation from a checkout
+
+Contributors can clone the repository and install from the checkout:
+
+```bash
+git clone https://github.com/itsomidho/pi-workbench.git
+cd pi-workbench
+./scripts/install.sh
+npm install -g .
+pi install .
+```
+
+To install this repository as a local Pi package from any existing checkout:
 
 ```bash
 pi install /path/to/pi-workbench
 ```
 
-The installer creates only local runtime directories. It does not copy credentials or project facts:
+The installer creates only local runtime directories. It does not copy credentials or project facts. The application files and runtime data are intentionally separate. The default runtime locations are:
 
 ```text
-$HOME/.pi/agent       Pi runtime data
-$HOME/.pi/standards   Local standards root
-$HOME/.pi/tasks       Local task workspace
+$HOME/.pi-workbench/          Installed application (consumer mode)
+$HOME/.pi/agent               Pi runtime data
+$HOME/.pi/standards           Local standards root
+$HOME/.pi/tasks               Local task workspace
 ```
 
 Override these locations when needed:

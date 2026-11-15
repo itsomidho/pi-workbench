@@ -4,6 +4,7 @@ import path from 'node:path';
 const root = path.resolve(new URL('..', import.meta.url).pathname);
 const required = [
   'CHANGELOG.md',
+  'docs/installation.md',
   'domains/wordpress/domain.json',
   'domains/wordpress/quality-gates.json',
   'domains/wordpress/standards/README.md',

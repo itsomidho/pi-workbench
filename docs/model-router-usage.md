@@ -3,7 +3,9 @@
 The package exposes a virtual model named `router/auto`. It selects a physical model from the models currently available to Pi, including models registered by independent `pi-<name>` adapters.
 
 ```bash
-pi install /path/to/pi-workbench
+# Consumer installation
+# See docs/installation.md for archive-based installation without Git.
+pi install "$HOME/.pi-workbench"
 PI_ROUTER_ROLE=debugger pi --model router/auto
 ```
 
