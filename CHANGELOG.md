@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.4.0 - Unreleased
+
+- Preserve the caller's working directory when launching Pi with `piw run`.
+- Keep Workbench installation files separate from the project being worked on.
+
 ## 0.3.9 - Unreleased
 
 - Preserve the consumer application directory during `piw update`.

@@ -28,8 +28,8 @@ Usage:
   piw help`);
 }
 
-function run(command, args = []) {
-  const result = spawnSync(command, args, { cwd: root, stdio: 'inherit', env: process.env });
+function run(command, args = [], options = {}) {
+  const result = spawnSync(command, args, { cwd: options.cwd ?? root, stdio: 'inherit', env: process.env });
   if (result.error) throw result.error;
   process.exit(result.status ?? 1);
 }
@@ -89,7 +89,7 @@ switch (`${group}:${action ?? ''}`) {
     run(process.execPath, ['scripts/update.mjs', ...(action === '--check' || action === '--yes' ? [action, ...args] : args)]);
     break;
   case 'run:':
-    run('pi', ['--model', 'router/auto', ...args]);
+    run('pi', ['--model', 'router/auto', ...args], { cwd: process.cwd() });
     break;
   default:
     console.error(`Unknown command: ${group}${action ? ` ${action}` : ''}`);
