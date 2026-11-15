@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.3.3 - Unreleased
+
+- Add opt-in dependency bootstrap for apt-based systems.
+- Add `piw update` and `piw update --check` for release-archive installations.
+
 ## 0.3.2 - Unreleased
 
 - Fix consumer reinstall guidance when an older global `piw` binary is already present.

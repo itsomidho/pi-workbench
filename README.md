@@ -49,7 +49,7 @@ Consumers do not need to clone the repository or use Git for installation. Downl
 export PI_WORKBENCH_HOME="$HOME/.pi-workbench"
 mkdir -p "$PI_WORKBENCH_HOME"
 curl -L \
-  https://github.com/itsomidho/pi-workbench/archive/refs/tags/v0.3.2.tar.gz \
+  https://github.com/itsomidho/pi-workbench/archive/refs/tags/v0.3.3.tar.gz \
   | tar -xz --strip-components=1 -C "$PI_WORKBENCH_HOME"
 
 cd "$PI_WORKBENCH_HOME"
@@ -82,7 +82,15 @@ To install this repository as a local Pi package from any existing checkout:
 pi install /path/to/pi-workbench
 ```
 
-The installer creates only local runtime directories. It does not copy credentials or project facts. The application files and runtime data are intentionally separate. The default runtime locations are:
+The installer creates only local runtime directories. It does not copy credentials or project facts. If you are testing on a fresh apt-based machine or disposable LXD container, the opt-in bootstrap mode can install Node.js, npm, and Pi:
+
+```bash
+./scripts/install.sh --install-dependencies
+```
+
+The default `./scripts/install.sh` mode never changes system packages; it only validates prerequisites and creates runtime directories.
+
+The application files and runtime data are intentionally separate. The default runtime locations are:
 
 ```text
 $HOME/.pi-workbench/          Installed application (consumer mode)

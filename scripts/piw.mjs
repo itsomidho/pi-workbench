@@ -22,6 +22,7 @@ Usage:
   piw adapter create <name> [destination]
   piw check
   piw doctor
+  piw update [--check|--yes]
   piw version
   piw help`);
 }
@@ -73,6 +74,9 @@ switch (`${group}:${action ?? ''}`) {
     break;
   case 'doctor:':
     run('bash', ['scripts/doctor.sh']);
+    break;
+  case 'update:':
+    run(process.execPath, ['scripts/update.mjs', ...args]);
     break;
   default:
     console.error(`Unknown command: ${group}${action ? ` ${action}` : ''}`);
