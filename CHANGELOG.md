@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.3.4 - Unreleased
+
+- Install Node.js 22 when bootstrapping dependencies so Pi's runtime requirement is satisfied.
+- Fail clearly when an existing Node.js version is too old for Pi.
+
 ## 0.3.3 - Unreleased
 
 - Add opt-in dependency bootstrap for apt-based systems.

@@ -32,7 +32,7 @@ Generic roles and workflow tooling must not duplicate domain rules. Domain stand
 
 ## Requirements
 
-- Node.js 18 or newer
+- Node.js 22.19 or newer
 - npm
 - Pi
 - Git for project workflows
@@ -49,7 +49,7 @@ Consumers do not need to clone the repository or use Git for installation. Downl
 export PI_WORKBENCH_HOME="$HOME/.pi-workbench"
 mkdir -p "$PI_WORKBENCH_HOME"
 curl -L \
-  https://github.com/itsomidho/pi-workbench/archive/refs/tags/v0.3.3.tar.gz \
+  https://github.com/itsomidho/pi-workbench/archive/refs/tags/v0.3.4.tar.gz \
   | tar -xz --strip-components=1 -C "$PI_WORKBENCH_HOME"
 
 cd "$PI_WORKBENCH_HOME"
