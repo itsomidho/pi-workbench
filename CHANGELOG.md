@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.5.8 - Unreleased
+
+- Write adapter credential files with real newlines.
+- Read and recover credential files that contain literal `\\n` separators.
+
 ## 0.5.7 - Unreleased
 
 - Show a clear existing-adapter message instead of a raw stack trace.

@@ -35,7 +35,7 @@ function readEnv(provider) {
   const file = configPath(provider);
   if (!fs.existsSync(file)) fail(`credentials are not configured; run: piw adapter configure ${provider}`);
   const values = {};
-  for (const line of fs.readFileSync(file, 'utf8').split(/\r?\n/)) {
+  for (const line of fs.readFileSync(file, 'utf8').replaceAll('\\n', '\n').split(/\r?\n/)) {
     const match = line.match(/^([A-Z0-9_]+)="((?:[^"\\]|\\.)*)"$/);
     if (match) values[match[1]] = match[2].replaceAll('\\"', '"').replaceAll('\\\\', '\\');
   }
@@ -130,7 +130,7 @@ if (action === 'configure') {
     `${data.apiKeyEnv}="${apiKey.replaceAll('"', '\\"')}"`,
   ];
   if (caCert) lines.push(`${data.caCertEnv}="${caCert.replaceAll('"', '\\"')}"`);
-  fs.writeFileSync(file, `${lines.join('\\n')}\\n`, { mode: 0o600 });
+  fs.writeFileSync(file, `${lines.join('\n')}\n`, { mode: 0o600 });
   fs.chmodSync(file, 0o600);
   console.log(`Saved credentials to ${file}`);
   process.exit(0);

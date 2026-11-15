@@ -1,6 +1,6 @@
 {
   "name": "pi-workbench",
-  "version": "0.5.7",
+  "version": "0.5.8",
   "private": true,
   "description": "Portable, vendor-neutral Pi configuration, workflows, standards, and adapter tooling.",
   "type": "module",
