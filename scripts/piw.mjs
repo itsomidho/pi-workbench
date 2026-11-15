@@ -20,6 +20,13 @@ Usage:
   piw task approve <domain>/<project>/<date-slug>
   piw task artifacts <init|write|context> <task-directory> [stage] [summary]
   piw adapter create <name> [destination]
+  piw adapter check <path>
+  piw adapter install <path>
+  piw adapter configure <provider>
+  piw adapter health <provider>
+  piw adapter models <provider>
+  piw adapter list
+  piw adapter remove <provider>
   piw check
   piw doctor
   piw update [--check|--yes]
@@ -28,8 +35,23 @@ Usage:
   piw help`);
 }
 
+function loadProviderEnv(args) {
+  const providerFlag = args.findIndex((value) => value === '--provider' || value.startsWith('--provider='));
+  const provider = providerFlag >= 0 ? (args[providerFlag].includes('=') ? args[providerFlag].split('=', 2)[1] : args[providerFlag + 1]) : null;
+  const configDir = process.env.PI_WORKBENCH_CONFIG_DIR || path.join(process.env.HOME, '.config', 'pi-workbench', 'providers');
+  const files = provider ? [path.join(configDir, `${provider}.env`)] : (fs.existsSync(configDir) ? fs.readdirSync(configDir).filter((name) => name.endsWith('.env')).map((name) => path.join(configDir, name)) : []);
+  const env = { ...process.env };
+  for (const file of files) {
+    if (!fs.existsSync(file)) continue;
+    for (const line of fs.readFileSync(file, 'utf8').split(/\r?\n/)) {
+      const match = line.match(/^([A-Z0-9_]+)="((?:[^"\\]|\\.)*)"$/);
+      if (match) env[match[1]] = match[2].replaceAll('\\"', '"').replaceAll('\\\\', '\\');
+    }
+  }
+  return env;
+}
 function run(command, args = [], options = {}) {
-  const result = spawnSync(command, args, { cwd: options.cwd ?? root, stdio: 'inherit', env: process.env });
+  const result = spawnSync(command, args, { cwd: options.cwd ?? root, stdio: 'inherit', env: options.env ?? process.env });
   if (result.error) throw result.error;
   process.exit(result.status ?? 1);
 }
@@ -43,12 +65,15 @@ if (group === 'version' || group === '--version' || group === '-v') {
   console.log(version);
   process.exit(0);
 }
+if (group === 'adapter') {
+  run(process.execPath, [path.join(root, 'scripts', 'adapter.mjs'), action, ...args], { cwd: process.cwd() });
+}
 if (group === 'run') {
   const piArgs = [action && action.startsWith('--') ? action : undefined, ...args].filter(Boolean);
   run('pi', [
     ...(piArgs.some((value) => value === '--model' || value.startsWith('--model=')) ? [] : ['--model', 'router/auto']),
     ...piArgs,
-  ], { cwd: process.cwd() });
+  ], { cwd: process.cwd(), env: loadProviderEnv(piArgs) });
 }
 
 switch (`${group}:${action ?? ''}`) {

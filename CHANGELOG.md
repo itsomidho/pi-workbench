@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.5.0 - Unreleased
+
+- Add adapter check, install, configure, health, models, list, and remove commands.
+- Add secure interactive provider credential storage outside repositories.
+- Load configured provider credentials automatically for direct runs and router model discovery.
+- Support dynamic model catalogs with configurable paths and static model catalogs.
+- Add adapter lifecycle documentation.
+
 ## 0.4.3 - Unreleased
 
 - Load WordPress workflow skills, including `merge-request-review`, in Pi.
