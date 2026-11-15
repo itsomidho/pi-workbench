@@ -48,6 +48,8 @@ function loadProviderEnv(args) {
       if (match) env[match[1]] = match[2].replaceAll('\\"', '"').replaceAll('\\\\', '\\');
     }
   }
+  const caKey = Object.keys(env).find((key) => /_CA_CERT$/.test(key) && env[key]);
+  if (caKey) env.NODE_EXTRA_CA_CERTS = env[caKey].replace(/^~(?=\/)/, process.env.HOME);
   return env;
 }
 function run(command, args = [], options = {}) {

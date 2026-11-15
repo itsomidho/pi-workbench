@@ -125,9 +125,16 @@ if (action === 'configure') {
   const { data } = manifestFor(provider);
   const baseUrl = await ask(`${data.baseUrlEnv} (base URL): `);
   const apiKey = await ask(`${data.apiKeyEnv} (hidden): `, true);
+  const caCert = data.caCertEnv ? await ask(`${data.caCertEnv} (optional CA path): `) : '';
   if (!baseUrl || !apiKey) fail('base URL and API key are required');
+  if (caCert && !fs.existsSync(caCert.replace(/^~(?=\/)/, os.homedir()))) fail(`CA certificate not found: ${caCert}`);
   const file = configPath(data.id);
-  fs.writeFileSync(file, `${data.baseUrlEnv}="${baseUrl.replaceAll('"', '\\"')}"\n${data.apiKeyEnv}="${apiKey.replaceAll('"', '\\"')}"\n`, { mode: 0o600 });
+  const lines = [
+    `${data.baseUrlEnv}="${baseUrl.replaceAll('"', '\\"')}"`,
+    `${data.apiKeyEnv}="${apiKey.replaceAll('"', '\\"')}"`,
+  ];
+  if (caCert) lines.push(`${data.caCertEnv}="${caCert.replaceAll('"', '\\"')}"`);
+  fs.writeFileSync(file, `${lines.join('\\n')}\\n`, { mode: 0o600 });
   fs.chmodSync(file, 0o600);
   console.log(`Saved credentials to ${file}`);
   process.exit(0);
@@ -136,6 +143,7 @@ if (action === 'health' || action === 'models') {
   const provider = args[0];
   const { dir, data } = manifestFor(provider);
   const env = { ...process.env, ...readEnv(provider) };
+  if (data.caCertEnv && env[data.caCertEnv]) env.NODE_EXTRA_CA_CERTS = env[data.caCertEnv].replace(/^~(?=\/)/, os.homedir());
   run('node', ['src/cli.mjs', action], dir, env);
 }
 if (action === 'list') {

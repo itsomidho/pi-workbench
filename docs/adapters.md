@@ -40,13 +40,13 @@ This validates, packages, installs the npm package, and registers it with Pi. Th
 piw adapter configure tabdl
 ```
 
-The command asks for the base URL and API key, hides the key while typing, and stores them at:
+The command asks for the base URL, API key, and an optional CA certificate path. It hides the key while typing and stores the values at:
 
 ```text
 $HOME/.config/pi-workbench/providers/tabdl.env
 ```
 
-The file is mode `0600` and is never stored in the adapter or project repository.
+The file is mode `0600` and is never stored in the adapter or project repository. The public names remain provider-specific, for example `TABDL_BASE_URL`, `TABDL_API_KEY`, and `TABDL_CA_CERT`; upstream project names are not exposed.
 
 ## Health and models
 

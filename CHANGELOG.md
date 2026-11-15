@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.5.6 - Unreleased
+
+- Keep the public adapter configuration namespace provider-specific, such as `TABDL_*`.
+- Prompt for an optional CA certificate path and apply it to adapter health and Pi runs.
+
 ## 0.5.5 - Unreleased
 
 - Replace readline hidden input with raw terminal input so API keys are never echoed.

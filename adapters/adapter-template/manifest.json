@@ -6,6 +6,7 @@
   "protocol": "openai-responses",
   "baseUrlEnv": "__ENV_PREFIX__BASE_URL",
   "apiKeyEnv": "__ENV_PREFIX__API_KEY",
+  "caCertEnv": "__ENV_PREFIX__CA_CERT",
   "catalog": { "enabled": true, "path": "/models" },
   "models": [],
   "capabilities": {
