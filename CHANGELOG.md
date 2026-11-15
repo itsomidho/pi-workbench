@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.5.3 - Unreleased
+
+- Run Pi registration updates from a stable home directory during `piw update`.
+- Prevent consumer updates from failing when the application directory is replaced.
+
 ## 0.5.2 - Unreleased
 
 - Fix hidden API-key input in interactive adapter configuration on tmux and LXD terminals.

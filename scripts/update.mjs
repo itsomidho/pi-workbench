@@ -10,8 +10,8 @@ const args = new Set(process.argv.slice(2));
 const current = JSON.parse(fs.readFileSync(path.join(root, 'package.json'), 'utf8')).version;
 const api = 'https://api.github.com/repos/itsomidho/pi-workbench/releases/latest';
 
-function run(command, commandArgs) {
-  const result = spawnSync(command, commandArgs, { stdio: 'inherit' });
+function run(command, commandArgs, options = {}) {
+  const result = spawnSync(command, commandArgs, { cwd: options.cwd, stdio: 'inherit' });
   if (result.status !== 0) process.exit(result.status ?? 1);
 }
 function capture(command, commandArgs) {
@@ -47,7 +47,7 @@ try {
   try {
     fs.renameSync(unpacked, root);
     fs.cpSync(root, preserved, { recursive: true });
-    if (process.env.PI_BIN || capture('sh', ['-c', 'command -v pi || true'])) run('pi', ['install', root]);
+    if (process.env.PI_BIN || capture('sh', ['-c', 'command -v pi || true'])) run('pi', ['install', root], { cwd: os.homedir() });
     fs.rmSync(root, { recursive: true, force: true });
     fs.renameSync(preserved, root);
     fs.rmSync(backup, { recursive: true, force: true });
