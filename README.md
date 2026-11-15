@@ -44,7 +44,11 @@ From the repository:
 ```bash
 ./scripts/install.sh
 ./scripts/doctor.sh
+npm install -g .
+piw --help
 ```
+
+The `piw` command is the supported CLI for daily project, task, adapter, and validation operations. The underlying scripts remain available for automation.
 
 To install this repository as a local Pi package:
 
@@ -68,6 +72,23 @@ PI_STANDARDS_DIR="$HOME/.config/pi/standards" \
 PI_TASKS_DIR="$HOME/.config/pi/tasks" \
 ./scripts/install.sh
 ```
+
+## Pi Workbench CLI
+
+Common commands:
+
+```bash
+piw init wordpress sample-site
+piw task create wordpress sample-site seo-fix "Fix SEO metadata"
+piw task list
+piw task transition wordpress/sample-site/2026-01-01-seo-fix reviewing
+piw adapter create example-provider ../pi-example-provider
+piw check
+piw doctor
+piw version
+```
+
+Use `piw help` for the complete command list.
 
 ## Local project standards
 
@@ -220,6 +241,8 @@ Run all local checks before a release:
 npm run check
 npm test
 ./scripts/doctor.sh
+piw check
+piw doctor
 git diff --check
 ```
 

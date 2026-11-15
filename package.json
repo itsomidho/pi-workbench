@@ -1,6 +1,6 @@
 {
   "name": "pi-workbench",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
   "description": "Portable, vendor-neutral Pi configuration, workflows, standards, and adapter tooling.",
   "type": "module",
@@ -22,5 +22,8 @@
       "./workflows/*.md",
       "./domains/wordpress/workflows/*.md"
     ]
+  },
+  "bin": {
+    "piw": "./scripts/piw.mjs"
   }
 }
