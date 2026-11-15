@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.4.2 - Unreleased
+
+- Fix the primary `piw run` path to preserve the caller's working directory.
+
 ## 0.4.1 - Unreleased
 
 - Install updates from an npm package archive so the global `piw` binary never points into a deleted temporary directory.

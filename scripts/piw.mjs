@@ -48,7 +48,7 @@ if (group === 'run') {
   run('pi', [
     ...(piArgs.some((value) => value === '--model' || value.startsWith('--model=')) ? [] : ['--model', 'router/auto']),
     ...piArgs,
-  ]);
+  ], { cwd: process.cwd() });
 }
 
 switch (`${group}:${action ?? ''}`) {
