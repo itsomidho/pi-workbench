@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.5.4 - Unreleased
+
+- Prevent hidden adapter API keys from being echoed by readline in interactive terminals.
+
 ## 0.5.3 - Unreleased
 
 - Run Pi registration updates from a stable home directory during `piw update`.

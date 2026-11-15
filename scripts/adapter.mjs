@@ -55,7 +55,7 @@ function ask(question, hidden = false) {
     const input = process.stdin;
     const output = process.stdout;
     output.write(question);
-    const rl = readline.createInterface({ input, output, terminal: Boolean(input.isTTY) });
+    const rl = readline.createInterface({ input, output, terminal: hidden ? false : Boolean(input.isTTY) });
     let restored = false;
     const restore = () => {
       if (!hidden || restored) return;
