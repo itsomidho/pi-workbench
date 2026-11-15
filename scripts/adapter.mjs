@@ -103,7 +103,7 @@ if (action === 'install') {
   exec('npm', ['pack', '--pack-destination', os.tmpdir()], dir);
   const tarball = fs.readdirSync(os.tmpdir()).filter((name) => name.startsWith(`${data.packageName}-`) && name.endsWith('.tgz')).sort().at(-1);
   if (!tarball) fail('npm did not create an adapter package archive');
-  run('npm', ['install', '-g', '--force', path.join(os.tmpdir(), tarball)], dir);
+  exec('npm', ['install', '-g', '--force', path.join(os.tmpdir(), tarball)], dir);
   const preserved = `${dir}.pi-install-preserved`;
   fs.cpSync(dir, preserved, { recursive: true });
   try {

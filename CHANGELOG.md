@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.5.9 - Unreleased
+
+- Complete adapter npm installation before Pi registration.
+- Ensure `piw adapter install` registers the adapter package in Pi.
+
 ## 0.5.8 - Unreleased
 
 - Write adapter credential files with real newlines.
