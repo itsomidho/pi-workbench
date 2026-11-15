@@ -61,40 +61,36 @@ function ask(question, hidden = false) {
   return new Promise((resolve) => {
     const input = process.stdin;
     const output = process.stdout;
-    let value = '';
+    let restored = false;
     const restore = () => {
-      try { input.setRawMode(false); } catch {}
-      input.pause();
-      input.removeListener('data', onData);
-    };
-    const onData = (chunk) => {
-      for (const char of chunk.toString()) {
-        if (char === '\\r' || char === '\\n') {
-          restore();
-          output.write('\n');
-          resolve(value.trim());
-          return;
-        }
-        if (char === '\\u0003') {
-          restore();
-          output.write('\n');
-          process.exit(130);
-        }
-        if (char === '\\u007f') value = value.slice(0, -1);
-        else if (char >= ' ') value += char;
-      }
+      if (restored) return;
+      restored = true;
+      spawnSync('stty', ['echo'], { stdio: ['ignore', 'ignore', 'ignore'] });
     };
     output.write(question);
-    input.setRawMode(true);
+    spawnSync('stty', ['-echo'], { stdio: ['ignore', 'ignore', 'ignore'] });
+    const rl = readline.createInterface({ input, output, terminal: false });
     input.resume();
-    input.on('data', onData);
+    rl.once('line', (answer) => {
+      restore();
+      rl.close();
+      output.write('\n');
+      resolve(answer.trim());
+    });
+    rl.once('close', restore);
   });
 }
 
 if (!action || action === 'help') { usage(); process.exit(0); }
 if (action === 'create') {
   const name = args[0];
+  if (!name) fail('usage: piw adapter create <name> [destination]');
   const destination = args[1] || path.join(adaptersDir, `pi-${name}`);
+  if (fs.existsSync(destination)) {
+    console.error(`Adapter already exists: ${destination}`);
+    console.error(`Use: piw adapter check "${destination}"`);
+    process.exit(2);
+  }
   run(process.execPath, [path.join(path.dirname(new URL(import.meta.url).pathname), 'create-adapter.mjs'), name, destination], process.cwd());
 }
 if (action === 'check') {

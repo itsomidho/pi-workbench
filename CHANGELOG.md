@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.5.7 - Unreleased
+
+- Show a clear existing-adapter message instead of a raw stack trace.
+- Make hidden adapter credential prompts reliable in Fish, tmux, and interactive terminals.
+
 ## 0.5.6 - Unreleased
 
 - Keep the public adapter configuration namespace provider-specific, such as `TABDL_*`.
