@@ -55,23 +55,21 @@ function ask(question, hidden = false) {
     const input = process.stdin;
     const output = process.stdout;
     output.write(question);
-    if (!hidden || !input.isTTY) {
-      const rl = readline.createInterface({ input, output, terminal: false });
-      rl.once('line', (answer) => { rl.close(); resolve(answer.trim()); });
-      return;
-    }
-    input.setRawMode(true);
-    let value = '';
-    const onData = (chunk) => {
-      for (const char of chunk.toString()) {
-        if (char === '\n' || char === '\r') {
-          input.setRawMode(false); input.off('data', onData); output.write('\n'); resolve(value); return;
-        }
-        if (char === '\u0003') process.exit(130);
-        if (char === '\u007f') value = value.slice(0, -1); else value += char;
-      }
+    const rl = readline.createInterface({ input, output, terminal: Boolean(input.isTTY) });
+    let restored = false;
+    const restore = () => {
+      if (!hidden || restored) return;
+      restored = true;
+      spawnSync('stty', ['echo'], { stdio: ['ignore', 'ignore', 'ignore'] });
     };
-    input.on('data', onData);
+    if (hidden && input.isTTY) spawnSync('stty', ['-echo'], { stdio: ['ignore', 'ignore', 'ignore'] });
+    rl.once('line', (answer) => {
+      restore();
+      rl.close();
+      output.write(hidden ? '\\n' : '');
+      resolve(answer.trim());
+    });
+    rl.once('close', restore);
   });
 }
 

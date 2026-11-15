@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.5.2 - Unreleased
+
+- Fix hidden API-key input in interactive adapter configuration on tmux and LXD terminals.
+- Restore terminal echo reliably after credential prompts.
+
 ## 0.5.1 - Unreleased
 
 - Store generated adapters in `$HOME/.pi-adapters` by default.
