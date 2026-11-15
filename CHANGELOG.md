@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.5.10 - Unreleased
+
+- Discover dynamic adapter models during Pi startup.
+- Keep adapter refresh available for explicit model-catalog refreshes.
+
 ## 0.5.9 - Unreleased
 
 - Complete adapter npm installation before Pi registration.

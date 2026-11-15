@@ -32,28 +32,36 @@ function config(env = process.env) {
   return { baseUrl: url.href.replace(/\/$/, ""), apiKey };
 }
 
-export default function (pi: ExtensionAPI) {
+async function discoverModels(signal?: AbortSignal) {
+  if (manifest.catalog?.enabled === false) return (manifest.models ?? []).map(modelFromCatalog).filter(Boolean);
+  const { baseUrl, apiKey } = config();
+  const response = await fetch(`${baseUrl}${manifest.catalog?.path ?? "/models"}`, {
+    headers: { Authorization: `Bearer ${apiKey}`, "x-api-key": apiKey },
+    redirect: "error",
+    signal,
+  });
+  if (!response.ok) throw new Error(`Model catalog failed with HTTP ${response.status}`);
+  const payload = await response.json();
+  const models = Array.isArray(payload?.data)
+    ? payload.data.map(modelFromCatalog).filter(Boolean)
+    : [];
+  if (!models.length) throw new Error("Provider returned an empty model catalog");
+  return models;
+}
+
+export default async function (pi: ExtensionAPI) {
+  let models = (manifest.models ?? []).map(modelFromCatalog).filter(Boolean);
+  try {
+    models = await discoverModels();
+  } catch (error) {
+    if (!models.length) console.warn(`Could not discover ${providerId} models: ${error instanceof Error ? error.message : String(error)}`);
+  }
   pi.registerProvider(providerId, {
     name: "__DISPLAY_NAME__",
     api: "openai-responses",
     baseUrl: `$${baseUrlEnv}`,
     apiKey: `$${apiKeyEnv}`,
-    models: (manifest.models ?? []).map(modelFromCatalog).filter(Boolean),
-    refreshModels: async (context: any) => {
-      if (manifest.catalog?.enabled === false) return (manifest.models ?? []).map(modelFromCatalog).filter(Boolean);
-      const { baseUrl, apiKey } = config();
-      const response = await fetch(`${baseUrl}${manifest.catalog?.path ?? "/models"}`,  {
-        headers: { Authorization: `Bearer ${apiKey}`, "x-api-key": apiKey },
-        redirect: "error",
-        signal: context.signal,
-      });
-      if (!response.ok) throw new Error(`Model catalog failed with HTTP ${response.status}`);
-      const payload = await response.json();
-      const models = Array.isArray(payload?.data)
-        ? payload.data.map(modelFromCatalog).filter(Boolean)
-        : [];
-      if (!models.length) throw new Error("Provider returned an empty model catalog");
-      return models;
-    },
+    models,
+    refreshModels: (context: any) => discoverModels(context.signal),
   });
 }
