@@ -76,7 +76,9 @@ switch (`${group}:${action ?? ''}`) {
     run('bash', ['scripts/doctor.sh']);
     break;
   case 'update:':
-    run(process.execPath, ['scripts/update.mjs', ...args]);
+  case 'update:--check':
+  case 'update:--yes':
+    run(process.execPath, ['scripts/update.mjs', ...(action === '--check' || action === '--yes' ? [action, ...args] : args)]);
     break;
   default:
     console.error(`Unknown command: ${group}${action ? ` ${action}` : ''}`);

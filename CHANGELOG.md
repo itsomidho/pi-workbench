@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.3.6 - Unreleased
+
+- Fix `piw update --check` and `piw update --yes` argument routing.
+
 ## 0.3.5 - Unreleased
 
 - Make `install.sh` install the `piw` CLI globally and register the Workbench package with Pi.
