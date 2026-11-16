@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 import { spawnSync } from 'node:child_process';
 import fs from 'node:fs';
+import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -52,6 +53,10 @@ function loadProviderEnv(args) {
   if (caKey) env.NODE_EXTRA_CA_CERTS = env[caKey].replace(/^~(?=\/)/, process.env.HOME);
   return env;
 }
+function safeCwd() {
+  try { return process.cwd(); } catch { return os.homedir(); }
+}
+
 function run(command, args = [], options = {}) {
   const result = spawnSync(command, args, { cwd: options.cwd ?? root, stdio: 'inherit', env: options.env ?? process.env });
   if (result.error) throw result.error;
@@ -68,14 +73,14 @@ if (group === 'version' || group === '--version' || group === '-v') {
   process.exit(0);
 }
 if (group === 'adapter') {
-  run(process.execPath, [path.join(root, 'scripts', 'adapter.mjs'), action, ...args], { cwd: process.cwd() });
+  run(process.execPath, [path.join(root, 'scripts', 'adapter.mjs'), action, ...args], { cwd: safeCwd() });
 }
 if (group === 'run') {
   const piArgs = [action && action.startsWith('--') ? action : undefined, ...args].filter(Boolean);
   run('pi', [
     ...(piArgs.some((value) => value === '--model' || value.startsWith('--model=')) ? [] : ['--model', 'router/auto']),
     ...piArgs,
-  ], { cwd: process.cwd(), env: loadProviderEnv(piArgs) });
+  ], { cwd: safeCwd(), env: loadProviderEnv(piArgs) });
 }
 
 switch (`${group}:${action ?? ''}`) {
@@ -116,7 +121,7 @@ switch (`${group}:${action ?? ''}`) {
     run(process.execPath, ['scripts/update.mjs', ...(action === '--check' || action === '--yes' ? [action, ...args] : args)]);
     break;
   case 'run:':
-    run('pi', ['--model', 'router/auto', ...args], { cwd: process.cwd() });
+    run('pi', ['--model', 'router/auto', ...args], { cwd: safeCwd() });
     break;
   default:
     console.error(`Unknown command: ${group}${action ? ` ${action}` : ''}`);

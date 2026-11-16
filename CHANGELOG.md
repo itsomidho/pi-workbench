@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.5.11 - Unreleased
+
+- Recover safely when `piw` is launched from a deleted working directory.
+
 ## 0.5.10 - Unreleased
 
 - Discover dynamic adapter models during Pi startup.
