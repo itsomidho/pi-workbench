@@ -1,105 +1,136 @@
-# Provider Adapters
+# Provider adapters
 
-Adapters are independent Pi packages. They connect Pi to a provider, discover its models, and publish model capabilities for `router/auto`.
+A provider adapter is an independent Pi package that registers a provider, discovers its models, and publishes accurate capabilities to Pi and `router/auto`.
 
-## Create
+## Rules
 
-```bash
-piw adapter create tabdl
+- Adapter source defaults to `$HOME/.pi-adapters/pi-<name>`.
+- The public provider name is the adapter name, for example `tabdl`.
+- Credentials stay in `$HOME/.config/pi-workbench/providers/<name>.env`.
+- API keys are hidden during configuration and stored with mode `0600`.
+- Never commit keys, OAuth state, private certificates, or real provider responses.
+- Review third-party adapter source before installing it.
+
+## Create a new adapter
+
+```fish
+piw adapter create example
 ```
 
-The generated package is independent of `pi-workbench`, is named `pi-tabdl`, and is stored at `$HOME/.pi-adapters/pi-tabdl` by default.
+This creates:
 
-## Implement and check
-
-Edit `manifest.json` and `extensions/provider.ts`, then run:
-
-```bash
-piw adapter check "$HOME/.pi-adapters/pi-tabdl"
+```text
+$HOME/.pi-adapters/pi-example
 ```
 
-The template supports three model catalog modes:
+If the destination already exists, creation stops safely. Do not recreate it; inspect and install the existing package instead.
 
-- Dynamic `/models` catalog (default).
-- Dynamic custom catalog path, such as `/v1/models`, set in `manifest.json`.
-- Static catalog with `catalog.enabled: false` and a `models` array in `manifest.json`.
+## Check and install
 
-A model should declare `tools`, `vision`, `reasoning`, `contextWindow`/`context_length`, and `maxTokens`/`max_completion_tokens` accurately. The router filters models by these capabilities.
-
-## Install
-
-```bash
-piw adapter install "$HOME/.pi-adapters/pi-tabdl"
+```fish
+piw adapter check "$HOME/.pi-adapters/pi-example"
+piw adapter install "$HOME/.pi-adapters/pi-example"
+pi list
 ```
 
-This validates, packages, installs the npm package, and registers it with Pi. The adapter source remains in its original directory.
+Installation validates the manifest, packages the adapter, installs it through Pi's package manager, and preserves the source directory. `pi list` shows packages, not model catalog entries.
 
 ## Configure credentials
 
-```bash
-piw adapter configure tabdl
+```fish
+piw adapter configure example
 ```
 
-The command asks for the base URL, API key, and an optional CA certificate path. It hides the key while typing and stores the values at:
+The command prompts for the public provider variables:
 
 ```text
-$HOME/.config/pi-workbench/providers/tabdl.env
+EXAMPLE_BASE_URL
+EXAMPLE_API_KEY
+EXAMPLE_CA_CERT
 ```
 
-The file is mode `0600` and is never stored in the adapter or project repository. The public names remain provider-specific, for example `TABDL_BASE_URL`, `TABDL_API_KEY`, and `TABDL_CA_CERT`; upstream project names are not exposed.
+The API key is hidden. The saved file is:
 
-## Health and models
-
-```bash
-piw adapter health tabdl
-piw adapter models tabdl
-piw adapter list
+```text
+$HOME/.config/pi-workbench/providers/example.env
 ```
 
-`health` and `models` load the saved credentials automatically.
+It is mode `0600`. A private/self-signed service should use `*_CA_CERT`; do not disable TLS verification.
 
-## Run Pi
+## Health and model discovery
 
-```bash
-cd "$HOME/projects/demo-site"
-piw run --provider tabdl --model <model-id>
+```fish
+piw adapter health example
+piw adapter models example
 ```
 
-`piw run` loads configured provider credentials automatically. When using `router/auto`, all configured provider env files are loaded so the router can discover models from every installed adapter.
+`health` tests the provider endpoint. `models` queries the adapter catalog. A successful health check does not guarantee that Pi can select a model: the adapter must also be installed, and its model metadata must be compatible with the requested workflow.
 
-```bash
+The template supports:
+
+- dynamic `/models` catalogs;
+- dynamic custom paths such as `/v1/models`;
+- static catalogs with `catalog.enabled: false` and a `models` array.
+
+Dynamic adapters are queried during Pi startup and during explicit model refresh. `piw run --list-models` is the most useful end-to-end check because it loads saved provider credentials before starting Pi.
+
+## Run with an adapter
+
+Use `piw run`, not bare `pi`, for saved Workbench credentials:
+
+```fish
+cd "$HOME/projects/my-project"
+piw run --provider example --model <model-id>
+```
+
+List every model visible to Pi:
+
+```fish
+piw run --list-models
+```
+
+Use the router:
+
+```fish
 PI_ROUTER_TRACE=1 piw run
 ```
 
-If a provider has no compatible model, inspect its catalog and capability metadata first:
+Bare `pi --list-models` only works for a provider when its environment variables are already present in the shell. It does not automatically read Workbench `.env` files.
 
-```bash
-piw adapter models tabdl
+## Capability metadata
+
+Each discovered model should report accurate values for:
+
+```text
+id
+name
+context window
+max output tokens
+tools
+reasoning
+vision
 ```
 
-## Static catalog example
+`router/auto` filters models by these values. A model can appear in `piw run --list-models` but still be rejected for a role that requires tools, reasoning, vision, or a larger context window.
 
-```json
-{
-  "catalog": { "enabled": false },
-  "models": [
-    {
-      "id": "tabdl-large",
-      "name": "Tabdl Large",
-      "contextWindow": 128000,
-      "maxTokens": 8192,
-      "tools": true,
-      "vision": false,
-      "reasoning": true
-    }
-  ]
-}
+## Remove or repair
+
+Remove saved credentials only:
+
+```fish
+piw adapter remove example
 ```
 
-## Remove credentials
+The adapter package and source remain installed.
 
-```bash
-piw adapter remove tabdl
+For an existing adapter:
+
+```fish
+piw adapter check "$HOME/.pi-adapters/pi-example"
+piw adapter install "$HOME/.pi-adapters/pi-example"
+piw adapter configure example
+piw adapter health example
+piw adapter models example
 ```
 
-This removes local credentials only. It does not remove the adapter package or source directory.
+Do not edit Pi's `models.json` to register a dynamic Workbench adapter. The adapter extension and `piw run` are the source of truth.

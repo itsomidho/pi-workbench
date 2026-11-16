@@ -1,60 +1,109 @@
-# Installation
+# Installation and updates
+
+## Choose a mode
+
+| Mode | Use when | Git required? |
+| --- | --- | --- |
+| Release archive | Daily/consumer installation | No |
+| Source checkout | Developing Workbench | Yes |
+| Disposable bootstrap | Testing on a fresh apt-based machine/container | Optional |
 
 ## Consumer installation
 
-Consumers should install a release archive rather than clone the Git repository. This keeps repository metadata out of the installation directory.
+A release archive installs the application without repository metadata:
 
-```bash
-export PI_WORKBENCH_HOME="$HOME/.pi-workbench"
+```fish
+set -gx PI_WORKBENCH_HOME "$HOME/.pi-workbench"
 mkdir -p "$PI_WORKBENCH_HOME"
-curl -L \
-  https://github.com/itsomidho/pi-workbench/archive/refs/tags/v0.3.5.tar.gz \
+curl -L https://github.com/itsomidho/pi-workbench/archive/refs/tags/v0.5.10.tar.gz \
   | tar -xz --strip-components=1 -C "$PI_WORKBENCH_HOME"
-
 cd "$PI_WORKBENCH_HOME"
 ./scripts/install.sh
-```
-
-Verify the installation:
-
-```bash
 piw version
 piw doctor
 piw check
 ```
 
-The application is installed at `$HOME/.pi-workbench`. The archive does not contain `.git` or other Git metadata.
+The installer registers the Workbench Pi package and installs the global `piw` command. It does not install system packages in normal mode.
 
-## Runtime data
+For a disposable apt-based machine:
 
-By default, runtime data remains outside the application directory:
-
-```text
-$HOME/.pi/agent
-$HOME/.pi/standards
-$HOME/.pi/tasks
+```fish
+./scripts/install.sh --install-dependencies
 ```
 
-For a fully isolated installation:
+Review that script before using it on a machine you do not control.
 
-```bash
-export PI_AGENT_DIR="$HOME/.pi-workbench-data/agent"
-export PI_STANDARDS_DIR="$HOME/.pi-workbench-data/standards"
-export PI_TASKS_DIR="$HOME/.pi-workbench-data/tasks"
-cd "$HOME/.pi-workbench"
-./scripts/install.sh
+## Update
+
+```fish
+cd "$HOME"
+piw update --check
+piw update --yes
+hash -r
+piw version
 ```
 
-## Development installation
+Updates are archive-based and preserve:
 
-Contributors who need to modify the source may use Git:
+- `$HOME/.pi-workbench`
+- the global `piw` command
+- Pi package registration
+- `$HOME/.pi/agent`
+- adapter source and provider credentials
+
+If an update fails, the updater restores the previous application directory when possible. Do not delete runtime data to solve an application update problem.
+
+## Source checkout
 
 ```bash
 git clone https://github.com/itsomidho/pi-workbench.git
 cd pi-workbench
 ./scripts/install.sh
-npm install -g --force .
+npm test
+npm run check
+```
+
+To register a checkout as a Pi package:
+
+```bash
 pi install .
 ```
 
-The development checkout and consumer installation are separate modes. Consumers do not need Git.
+Consumer installations should not use this mode.
+
+## Runtime locations
+
+Defaults:
+
+```text
+$HOME/.pi-workbench                         Installed application
+$HOME/.pi/agent                             Pi settings, sessions, auth, MCP state
+$HOME/.pi/standards                         Local standards and project facts
+$HOME/.pi/tasks                             Task state and artifacts
+$HOME/.pi-adapters                          Independent adapter source
+$HOME/.config/pi-workbench/providers         Provider env files and CA certificates
+```
+
+Override Workbench task/standards locations during installation if required:
+
+```bash
+PI_AGENT_DIR="$HOME/.config/pi/agent" \
+PI_STANDARDS_DIR="$HOME/.config/pi/standards" \
+PI_TASKS_DIR="$HOME/.config/pi/tasks" \
+./scripts/install.sh
+```
+
+Do not place credentials, OAuth state, project facts, or task state in the repository or application archive.
+
+## Verify a clean installation
+
+```fish
+piw version
+piw doctor
+piw check
+pi list
+piw adapter list
+```
+
+For isolation testing, use a disposable home directory or disposable container. Do not modify production or existing project containers.

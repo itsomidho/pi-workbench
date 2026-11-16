@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.5.12 - Unreleased
+
+- Resolve adapter base URLs before Pi sends model requests.
+- Fix `Invalid URL` failures for dynamic provider adapters.
+
 ## 0.5.11 - Unreleased
 
 - Recover safely when `piw` is launched from a deleted working directory.

@@ -59,7 +59,7 @@ export default async function (pi: ExtensionAPI) {
   pi.registerProvider(providerId, {
     name: "__DISPLAY_NAME__",
     api: "openai-responses",
-    baseUrl: `$${baseUrlEnv}`,
+    baseUrl: config().baseUrl,
     apiKey: `$${apiKeyEnv}`,
     models,
     refreshModels: (context: any) => discoverModels(context.signal),

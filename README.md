@@ -1,320 +1,184 @@
 # Pi Workbench
 
-Pi Workbench is a portable, vendor-neutral harness for Pi. It provides reusable roles, skills, domain packs, workflow orchestration, capability-based model routing, local project standards, task lifecycle management, and an independent provider-adapter generator.
+Pi Workbench is a portable workflow layer for [Pi](https://github.com/earendil-works/pi). It adds domain packs, project standards, approval-gated tasks, stage handoffs, bounded review/fix loops, capability-based model routing, and independent provider adapters.
 
-It does not require Claude Code or Codex. Provider credentials, OAuth state, project facts, task state, and machine-specific paths remain outside this repository.
+Pi remains the runtime. Workbench does not bundle a model vendor, copy credentials into projects, or replace Pi's model and extension system.
 
-## Architecture
+## What to use
 
-```text
-pi-workbench/
-├── adapters/       Provider adapter template and contract
-├── config/         Configuration examples
-├── domains/        Domain packs, currently WordPress
-├── docs/           Routing and usage documentation
-├── extensions/     Pi model router and task workflow extension
-├── scripts/        Installation, validation, task, and adapter commands
-├── skills/         Generic skills such as think and think-advisor
-└── workflows/      Generic prompts and task template
-```
-
-A domain pack owns its domain-specific behavior:
-
-```text
-domains/wordpress/
-├── roles/
-├── skills/
-├── standards/
-└── workflows/
-```
-
-Generic roles and workflow tooling must not duplicate domain rules. Domain standards remain the source of truth for domain-specific checks.
+| Need | Command |
+| --- | --- |
+| Install or update Workbench | `./scripts/install.sh` or `piw update --yes` |
+| Check the installation | `piw doctor` and `piw check` |
+| Configure a provider | `piw adapter configure <name>` |
+| See provider models | `piw adapter models <name>` |
+| Run Pi with saved provider credentials | `piw run ...` |
+| Let Workbench choose a capable model | `piw run` |
+| Start a task | `/think`, approval, then `/task-go ...` inside Pi |
 
 ## Requirements
 
-- Node.js 22.19 or newer
+- Node.js `>=22.19.0`
 - npm
 - Pi
-- Git for project workflows
+- Git only for the project workflows that need it; Git is not required to install Workbench
 
-## Install
+## Install for daily use
 
-There are two supported installation modes.
-
-### Consumer installation from GitHub
-
-Consumers do not need to clone the repository or use Git for installation. Download a release archive into a dedicated application directory. The archive contains no `.git` directory or repository metadata.
+Consumer installs use a GitHub release archive. No clone and no `.git` directory are required.
 
 ```bash
 export PI_WORKBENCH_HOME="$HOME/.pi-workbench"
 mkdir -p "$PI_WORKBENCH_HOME"
-curl -L \
-  https://github.com/itsomidho/pi-workbench/archive/refs/tags/v0.3.5.tar.gz \
+curl -L https://github.com/itsomidho/pi-workbench/archive/refs/tags/v0.5.10.tar.gz \
   | tar -xz --strip-components=1 -C "$PI_WORKBENCH_HOME"
-
 cd "$PI_WORKBENCH_HOME"
 ./scripts/install.sh
-
 piw version
 piw doctor
 piw check
 ```
 
-This keeps the installed application in `$HOME/.pi-workbench` and does not place Git data there. The `piw` command is the supported CLI for daily project, task, adapter, and validation operations.
+Fish equivalent:
 
-### Development installation from a checkout
-
-Contributors can clone the repository and install from the checkout:
-
-```bash
-git clone https://github.com/itsomidho/pi-workbench.git
-cd pi-workbench
+```fish
+set -gx PI_WORKBENCH_HOME "$HOME/.pi-workbench"
+mkdir -p "$PI_WORKBENCH_HOME"
+curl -L https://github.com/itsomidho/pi-workbench/archive/refs/tags/v0.5.10.tar.gz \
+  | tar -xz --strip-components=1 -C "$PI_WORKBENCH_HOME"
+cd "$PI_WORKBENCH_HOME"
 ./scripts/install.sh
-npm install -g --force .
-pi install .
+piw version
+piw doctor
+piw check
 ```
 
-To install this repository as a local Pi package from any existing checkout:
-
-```bash
-pi install /path/to/pi-workbench
-```
-
-The installer creates only local runtime directories. It does not copy credentials or project facts. If you are testing on a fresh apt-based machine or disposable LXD container, the opt-in bootstrap mode can install Node.js, npm, and Pi:
+The optional bootstrap mode can install Node.js, npm, and Pi on supported apt-based machines:
 
 ```bash
 ./scripts/install.sh --install-dependencies
 ```
 
-The default `./scripts/install.sh` mode never changes system packages; it only validates prerequisites and creates runtime directories.
+The normal installer does not change system packages.
 
-The application files and runtime data are intentionally separate. The default runtime locations are:
+## Update safely
 
-```text
-$HOME/.pi-workbench/          Installed application (consumer mode)
-$HOME/.pi/agent               Pi runtime data
-$HOME/.pi/standards           Local standards root
-$HOME/.pi/tasks               Local task workspace
-```
+Run updates outside the project directory so an update cannot be confused by a deleted or changing working directory:
 
-Override these locations when needed:
-
-```bash
-PI_AGENT_DIR="$HOME/.config/pi/agent" \
-PI_STANDARDS_DIR="$HOME/.config/pi/standards" \
-PI_TASKS_DIR="$HOME/.config/pi/tasks" \
-./scripts/install.sh
-```
-
-## Pi Workbench CLI
-
-Common commands:
-
-```bash
-piw init wordpress sample-site
-piw init-from-think wordpress sample-site seo-fix "$HOME/.pi/think/2026-01-01-seo-fix.md"
-piw task create wordpress sample-site seo-fix "Fix SEO metadata"
-piw task list
-piw task transition wordpress/sample-site/2026-01-01-seo-fix reviewing
-piw task artifacts context "$HOME/.pi/tasks/wordpress/sample-site/2026-01-01-seo-fix"
-piw adapter create example-provider
-piw check
-piw doctor
+```fish
+cd "$HOME"
+piw update --yes
+hash -r
 piw version
 ```
 
-Use `piw help` for the complete command list.
+`piw update` preserves `$HOME/.pi-workbench`, the global `piw` command, Pi package registration, provider credentials, and runtime data.
 
-## Local project standards
+## Run Pi
 
-Project facts are private local overlays. They are never bundled in this repository.
+Use `piw run` for normal Workbench usage. It preserves the current project directory and loads saved provider environment files before starting Pi.
 
-Create a project standards file with the domain-aware command:
-
-```bash
-PI_STANDARDS_DIR="$HOME/.pi/standards" \
-  node scripts/init-project.mjs wordpress sample-site
+```fish
+cd "$HOME/projects/my-project"
+piw run
 ```
 
-The result is:
+Use a specific provider and model:
 
-```text
-$HOME/.pi/standards/wordpress/projects/sample-site.md
+```fish
+piw run --provider tabdl --model cx/gpt-6.1-sol
 ```
 
-The command resolves the template from:
+List models from configured adapters:
 
-```text
-domains/wordpress/standards/projects/PROJECT.template.md
+```fish
+piw run --list-models
 ```
 
-A future domain can provide its own template at the equivalent path:
-
-```text
-domains/laravel/standards/projects/PROJECT.template.md
-```
-
-## Tasks and workflows
-
-Create a domain-aware task after the local project file exists:
-
-```bash
-node scripts/create-task.mjs \
-  wordpress sample-site seo-fix "Fix SEO metadata"
-```
-
-Tasks are stored outside the repository. Each task has a small shared context and one compact handoff brief per stage:
-
-```text
-$HOME/.pi/tasks/wordpress/sample-site/YYYY-MM-DD-seo-fix/
-├── TASK.md
-└── artifacts/
-    ├── shared-context.json
-    └── briefs/
-        ├── 01-plan.json
-        ├── 02-implement.json
-        └── ...
-```
-
-A stage should receive only the shared task context, the direct previous-stage brief, and relevant evidence. Full conversation history and unrelated reports should not be forwarded between stages.
-
-The lifecycle requires planning and explicit approval before implementation:
-
-```text
-planning
-  -> awaiting-approval
-  -> implementing
-  -> reviewing
-  -> fixing / qa / testing / auditing / finishing
-  -> done
-```
-
-Useful Pi commands:
-
-```text
-/task-init <domain> <project> <slug> <title>
-/task-list
-/task-status <domain>/<project>/<date-slug> <status>
-/task-approve <domain>/<project>/<date-slug>
-/task-start <domain>/<project>/<date-slug> <plan|implement|review|fix|qa|test|audit|finish>
-/task-run <domain>/<project>/<date-slug> <stage>
-/task-report <domain>/<project>/<date-slug> <NN-step> <summary>
-```
-
-CLI equivalents:
-
-```bash
-node scripts/list-tasks.mjs
-node scripts/task-transition.mjs \
-  wordpress/sample-site/2026-01-01-seo-fix reviewing
-```
-
-After a plan is approved, start the managed workflow with:
-
-```text
-/task-go <domain>/<project>/<date-slug>
-```
-
-You can resume a paused workflow with `/task-go-resume <domain>/<project>/<date-slug>` or stop after the current stage with `/task-go-stop`. The orchestrator runs implementation, review, bounded fix/review loops, QA, tests, audit, and finish. It pauses when a handoff brief is missing, a maximum fix round is reached, or user input is required. It records response usage in `artifacts/usage.jsonl` and writes `FINAL.md` when the workflow completes.
-
-Do not commit, push, post, publish, or open a merge request unless the user explicitly approves it.
+Direct `pi` does not load Workbench provider files. Use `piw run` unless you intentionally provide `TABDL_*` or other provider variables yourself.
 
 ## Model routing
 
-Use the virtual model `router/auto` for capability-based selection:
+`router/auto` is the default model selected by `piw run`. It chooses from models exposed by Pi and installed adapters using capability requirements such as tools, reasoning, vision, and context window.
 
-```bash
-pi --model router/auto
+```fish
+PI_ROUTER_TRACE=1 piw run
+PI_ROUTER_ROLE=debugger piw run
+PI_ROUTER_PROVIDER=tabdl piw run
 ```
 
-Select a role when needed:
+See [docs/model-router-usage.md](docs/model-router-usage.md).
 
-```bash
-PI_ROUTER_ROLE=debugger pi --model router/auto
-PI_ROUTER_ROLE=code-reviewer pi --model router/auto
-```
+## Provider adapters
 
-Optional controls:
+Adapters are independent Pi packages named `pi-<provider>`. They live outside the Workbench application by default:
 
 ```text
-PI_ROUTER_PROVIDER   Restrict selection to one configured provider
-PI_ROUTER_MODEL      Restrict selection to one configured model
-PI_ROUTER_TRACE=1    Log the selected provider and model
+$HOME/.pi-adapters/pi-<provider>
 ```
 
-The router selects from accessible models using requirements such as reasoning, tools, vision, and context window. It does not bundle provider credentials or assume a specific vendor.
+The normal lifecycle is:
 
-See `docs/model-routing.md` and `docs/model-router-usage.md` for details.
+```fish
+piw adapter create example
+piw adapter check "$HOME/.pi-adapters/pi-example"
+piw adapter install "$HOME/.pi-adapters/pi-example"
+piw adapter configure example
+piw adapter health example
+piw adapter models example
+```
 
-## Independent provider adapters
+Do not run `piw adapter create` again for an existing adapter. Use `check`, `install`, `configure`, `health`, or `models` instead.
 
-Pi Workbench does not bundle a provider-specific adapter. Generate one as a separate project:
+See [docs/adapters.md](docs/adapters.md) and [docs/tabdl.md](docs/tabdl.md).
+
+## Tasks and managed workflows
+
+Initialize a domain project and create a task:
+
+```fish
+piw init wordpress my-site
+piw task create wordpress my-site seo-fix "Fix SEO metadata"
+```
+
+Inside Pi, use `/think` to produce a plan. Approve the plan explicitly, then start the managed workflow:
+
+```text
+/task-go wordpress/my-site/<date-slug>
+```
+
+The workflow can run implementation, review, bounded fix/review loops, QA, tests, audit, and finish. It pauses for missing handoffs, approval, user input, or exceeded limits. A completed task writes:
+
+```text
+$HOME/.pi/tasks/wordpress/my-site/<date-slug>/FINAL.md
+```
+
+Commits, pushes, publishing, merge requests, reset, clean, and other repository actions require explicit user control.
+
+## Data locations
+
+Application files and private runtime data are separate:
+
+```text
+$HOME/.pi-workbench                         Workbench application
+$HOME/.pi/agent                             Pi runtime and sessions
+$HOME/.pi/standards                         Local project standards
+$HOME/.pi/tasks                             Task state and FINAL.md
+$HOME/.pi-adapters/pi-<provider>             Adapter source
+$HOME/.config/pi-workbench/providers         Provider env files and CA certificates
+```
+
+Credential files are mode `0600` and are never committed. Do not copy host credentials into a container unless you explicitly intend to configure that container.
+
+## Development
 
 ```bash
-node scripts/create-adapter.mjs example-provider ../pi-example-provider
-cd ../pi-example-provider
+git clone https://github.com/itsomidho/pi-workbench.git
+cd pi-workbench
+./scripts/install.sh
 npm test
-```
-
-The generated package follows the `pi-<name>` convention. Replace the protocol-specific implementation, configure credentials outside Git, and install or publish the adapter independently.
-
-Adapter responsibilities:
-
-- Resolve its own URL and credentials.
-- Discover and normalize provider models.
-- Declare provider capabilities.
-- Avoid logging secrets.
-- Leave model selection to Pi Workbench's router.
-
-## Adding a domain
-
-A domain pack should contain only domain-specific behavior and declare it in `domain.json`:
-
-```text
-domains/<domain>/
-├── domain.json
-├── roles/
-├── skills/
-├── standards/
-│   └── projects/PROJECT.template.md
-├── workflows/
-└── quality-gates.json
-```
-
-The manifest identifies the domain resources and allows validation without hardcoded paths. Add the domain's skills and prompts to the package manifest, provide its standards template, and add its workflow policy if it uses the task extension. Do not place real project files in the repository.
-
-## Development checks
-
-Run all local checks before a release:
-
-```bash
 npm run check
-npm test
-./scripts/doctor.sh
-piw check
-piw doctor
 git diff --check
 ```
 
-For a clean installation test, use an isolated home directory or a disposable LXD container. Never modify an existing production or project container for portability testing.
-
-## Security and portability
-
-- Keep API keys, tokens, OAuth state, and private URLs outside Git.
-- Use environment variables or Pi's local authentication store for credentials.
-- Review third-party Pi packages and adapters before installing them.
-- Do not copy local project standards into the portable repository.
-- Do not hardcode user home directories or machine-specific paths.
-- Do not claim provider support until its adapter and runtime behavior have been tested.
-
-## Release checklist
-
-The current development line is documented in `CHANGELOG.md`. Version `0.3.0` was the first release line with managed multi-stage orchestration and Pi RPC integration coverage.
-
-1. Run `npm run check` and `npm test`.
-2. Run `./scripts/doctor.sh`.
-3. Test installation with isolated local directories.
-4. Verify no project facts or secrets are tracked.
-5. Review `git diff --check` and `git status`.
-6. Commit only after explicit approval.
-7. Create a version tag only after the commit is verified.
+See [docs/installation.md](docs/installation.md), [docs/adapters.md](docs/adapters.md), and [docs/troubleshooting.md](docs/troubleshooting.md) for the canonical procedures.
