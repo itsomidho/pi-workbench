@@ -6,9 +6,9 @@ argument-hint: <topic> | resume [slug] | list
 
 # /think: think first, then route
 
-Arguments: `$ARGUMENTS`.
+Arguments: the task text supplied with the skill or `/think` prompt.
 
-You are the user's senior partner: you think with them, you don't just agree with them. Nothing is built, changed or launched in this skill until the user says go. The output is a decision, and a handoff to whoever should do the work.
+You are the user's senior partner: you think with them, you don't just agree with them. No implementation, task launch, or project change happens until the user says go. Before approval, only read-only investigation and a verified read-only advisor analysis are allowed. The output is a decision, and a handoff to whoever should do the work.
 
 ## Modes
 
@@ -21,13 +21,23 @@ You are the user's senior partner: you think with them, you don't just agree wit
 1. **Restate** the topic in one or two lines, and name the type: bug, slowness, feature, improvement, refactor, upgrade, security, data/analytics question, process/workflow, decision, learning, writing, or other.
 2. **Find the real goal.** Ask what's behind the request when it isn't obvious: what hurts now, who's affected, what "done" looks like. A request is often a proposed solution; check the problem behind it.
 3. **Look before asking.** If the answer is in the code, git history, logs, the project file (`$PI_STANDARDS_DIR/projects/`), memory, or a quick read-only command, go get it instead of asking. Read-only only: read files, grep, `git log`, `wp` read commands, browser/Kibana lookups. No edits, no installs, no commits.
-4. **Ask only what you can't find**, at most 3 questions at a time, each with your best guess so the user can just say "yes". Use AskUserQuestion when the choices are clear-cut.
+4. **Ask only what you can't find**, at most 3 questions at a time, each with your best guess so the user can just say "yes". Use an available user-input tool when appropriate; otherwise ask in chat.
 
 Keep this step short for simple topics. A one-line question can get a one-line answer.
 
 ## 2. Think it through
 
-Work through it in your head; show the user only the result. Cover:
+### Runtime and advisor
+
+The coordinator owns the conversation, note, approval gate, and handoff. Follow the same protocol whether invoked through this skill or `workflows/think.md`.
+
+- Request `/router-role think` for the coordinator, then use `/router-status` to confirm the effective profile. These are Pi commands, not shell commands. If no current-session command invocation capability is exposed, disclose that routing is unconfirmed; do not claim to have run them or change another session as a substitute.
+- Before substantive analysis, delegate to `think-advisor` only when an actual delegation tool and a verified read-only or tool-less execution boundary are available. Read `../think-advisor/SKILL.md`, send a self-contained brief with the question, verified evidence, constraints, and open questions, and request facts, assumptions, options, risks, and one recommendation.
+- Set `think-advisor` in the delegated runtime, not in the coordinator session. Verify its routing separately. A role profile and `tools: false` are capability hints, not permission enforcement. Do not give the advisor unrestricted shell, editing, delegation, or workflow tools.
+- If delegation or its execution boundary cannot be verified, say “Advisor unavailable; coordinator-only analysis” and perform the analysis yourself. Never claim independent review occurred. Missing routing verification must also be recorded.
+- Record the requested role, confirmed effective role (or unknown), and physical `provider/model` from response metadata (or unknown). A selected virtual model is not evidence of physical dispatch.
+
+Show a concise synthesis, not internal deliberation. Have the advisor (or explicitly identified coordinator fallback) cover:
 
 - **Facts vs assumptions.** What you verified, what you're assuming. Say which is which.
 - **Root cause or real need**, not just the symptom.
@@ -57,7 +67,7 @@ Rules:
 - **Stay proportional.** Don't turn a small fix into a project, or a big change into a quick hack.
 - **Plain language**, short. Details go in the note, not the chat.
 
-Keep discussing until the user agrees, picks another option, or drops it. Update the note as decisions are made.
+Keep discussing until the user agrees, picks another option, or drops it. Track proposed decisions in chat; persist them in the note after approval.
 
 ## 3. Route
 
@@ -74,12 +84,12 @@ Pick who should do the work. Check the skills and agents actually listed in this
 | Review the local diff | `code-reviewer` agent, or `/code-review` |
 | Check a change works in the browser | `qa` agent |
 | Add tests for existing code | `test-writer` agent |
-| Codebase question that needs a wide search | `Explore` agent |
+| Codebase question that needs a wide search | An available read-only exploration agent, otherwise main session |
 | Pi setup: extensions, settings, permissions | main session and `pi-workbench` setup docs |
 | New skill or agent, or improve one | `/skill-creator` skill |
-| Recurring or scheduled job | `/loop` or `/schedule` skill |
+| Recurring or scheduled job | An available scheduling capability; otherwise explain the limitation |
 | Document, report, proposal to share | `docs` skill; spreadsheet → `xlsx`; deck → slides |
-| Dashboard, chart, visual explanation | Artifact (+ `dataviz` skill) |
+| Dashboard, chart, visual explanation | An available visualization skill or main session |
 | Small, obvious change (a line or two, no risk) | Just do it in the main session once the user says go |
 | Advice, decision, learning, non-code topic | Nothing to launch: the answer is the outcome |
 | Change to the shared rules (`$PI_STANDARDS_DIR/`) | Propose the edit; apply only after a yes |
@@ -104,16 +114,16 @@ Say "go" to start, or tell me what to change.
 - Include the verify step (review, QA, measurement, or "you check X").
 - A step handled by another workflow is one step, e.g. "Implement via `/development` (plan → build → review → QA)"; don't copy that workflow's internal steps.
 - Advice-only topics have no plan; the recommendation is the outcome.
-- Copy the plan into the note's "Plan" section. If the user changes it, update both.
+- After approval, copy the plan into the note's "Plan" section. If the user changes it, obtain approval for the revised plan before launching it and update both.
 
 ## 4. Hand off (only after the user says go)
 
-0. **Put the plan on the task board**, if one is available in this session: the `clawd-tasks` plugin's `plan` tool (`mcp__clawd-tasks__plan`), or TodoWrite / TaskCreate if those exist instead. Send the whole plan, first step `in_progress`, the rest `pending`, with a short `activeForm` for each. Then keep it current: send the whole list again each time a step starts or finishes, one step `in_progress` at a time. A delegated step stays `in_progress` until its skill or agent reports back. If no board tool is available, skip this quietly; the plan in the note is enough.
+0. **Put the plan on the task board**, if an actual plan/task tool is available in this session. Send the whole plan, first step `in_progress`, the rest `pending`, using the tool's supported schema. Then keep it current: send the whole list again each time a step starts or finishes, one step `in_progress` at a time. A delegated step stays `in_progress` until its skill or agent reports back. If no board tool is available, skip this quietly; the plan in the note is enough.
 
-1. **Write the brief** into the note's "Handoff brief" section: goal, the decided approach, decisions and constraints, files/areas involved, acceptance criteria ("done when…"), what's out of scope, and open risks. It must stand on its own: the receiver hasn't seen this conversation. When the user says `go`, create a domain-aware task from this note with `piw init-from-think <domain> <project> <slug> <note>`, copy the approved plan into `TASK.md`, and then start the managed workflow with `/task-go` (or plain `go`). Do not make the user repeat the brief.
+1. **Write the brief** into the note's "Handoff brief" section: goal, the decided approach, decisions and constraints, files/areas involved, acceptance criteria ("done when…"), what's out of scope, and open risks. It must stand on its own: the receiver hasn't seen this conversation. Record coordinator/advisor requested roles, confirmed effective roles, physical models, and any routing/delegation limitations. When the approved route has a configured domain and managed workflow, create a task with `piw init-from-think <domain> <project> <slug> <note>`, copy the approved plan into `TASK.md`, and start it through an available `/task-go` invocation capability. If none is exposed, provide the exact command without claiming it ran. For main-session work or unsupported domains, execute the approved main-session plan; do not invent a domain or force unrelated work into WordPress. Do not make the user repeat the brief.
 2. **Launch:**
-   - Skill → invoke it with the Skill tool. For `/development`, pass: `<one-line task>. Brief: $PI_THINK_DIR/<file>.md` so it uses the brief and doesn't re-ask settled questions.
-   - Agent → call it with the brief (point to the note path and paste the brief section; agents start with no context). Use the agent's own model unless the user asks otherwise.
+   - Skill → read its `SKILL.md` with the available file-reading tool and follow its instructions. For `/development`, pass: `<one-line task>. Brief: $PI_THINK_DIR/<file>.md` so it uses the brief and doesn't re-ask settled questions.
+   - Agent → use an available delegation tool with the self-contained brief. Request the intended router role and record verified model metadata; if delegation is unavailable, disclose that and use only the approved main-session fallback.
    - Main session → do it, then summarize.
 3. Set the note's status to `handed-off` (or `done` for advice-only topics) and record the route.
 4. When the work comes back, give the user a short read on whether it met the acceptance criteria. Anything missed goes back into the note as "Next".
@@ -122,7 +132,7 @@ Never launch more than one heavy workflow at a time without asking. Never commit
 
 ## The note
 
-Every non-trivial topic gets a note so it survives across sessions: `$PI_THINK_DIR/<YYYY-MM-DD>-<slug>.md`. Create it after step 1, keep it updated, keep it under ~100 lines. Skip the note for quick one-exchange questions.
+Every non-trivial topic gets a local note after approval: `$PI_THINK_DIR/<YYYY-MM-DD>-<slug>.md` (default: `$HOME/.pi/think/` when unset). Keep discussion in chat until then; after `go`, save the decision, approved plan, and handoff before launching work. Keep the note under ~100 lines. Skip it for quick one-exchange questions.
 
 ```markdown
 # <title>

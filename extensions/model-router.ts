@@ -16,18 +16,21 @@ const PROVIDER_ENV = "PI_ROUTER_PROVIDER";
 const MODEL_ENV = "PI_ROUTER_MODEL";
 const TRACE_ENV = "PI_ROUTER_TRACE";
 const DEFAULT_REQUIREMENTS: Requirements = { reasoning: false, tools: true, vision: false, contextWindowMin: 64_000 };
+// The environment supplies the initial role; explicit session changes take precedence.
 let activeRole = process.env[ROLE_ENV] ?? "default";
 export function setRouterRole(role: string) {
-  if (!ROLE_REQUIREMENTS[role]) throw new Error(`Unknown router role: ${role}`);
+  if (!Object.hasOwn(ROLE_REQUIREMENTS, role)) throw new Error(`Unknown router role: ${role}`);
   activeRole = role;
 }
 export function getRouterRole() {
+  if (!Object.hasOwn(ROLE_REQUIREMENTS, activeRole)) throw new Error(`Unknown router role: ${activeRole}`);
   return activeRole;
 }
 
 const ROLE_REQUIREMENTS: Record<string, Requirements> = {
   default: DEFAULT_REQUIREMENTS,
   think: { reasoning: true, tools: true, vision: false, contextWindowMin: 100_000 },
+  // tools:false means tool support is not required; it does not restrict tool permissions.
   "think-advisor": { reasoning: true, tools: false, vision: false, contextWindowMin: 100_000 },
   "planner": { reasoning: true, tools: true, vision: false, contextWindowMin: 100_000 },
   "developer": { reasoning: false, tools: true, vision: false, contextWindowMin: 64_000 },
@@ -39,7 +42,7 @@ const ROLE_REQUIREMENTS: Record<string, Requirements> = {
 };
 
 function requirements(request: RouterRequest): Requirements {
-  const profile = ROLE_REQUIREMENTS[process.env[ROLE_ENV] ?? activeRole] ?? ROLE_REQUIREMENTS.default;
+  const profile = ROLE_REQUIREMENTS[getRouterRole()];
   const prompt = request.messages.filter((message) => message.role === "user").at(-1);
   const text = typeof prompt?.content === "string" ? prompt.content.toLowerCase() : "";
   const inferred = /think|architect|debug|review|security|migration|complex/.test(text);
@@ -113,19 +116,41 @@ export default function (pi: ExtensionAPI) {
     description: `Set the routing role (${Object.keys(ROLE_REQUIREMENTS).join(", ")})`,
     handler: async (args, ctx) => {
       const role = args.trim();
-      if (!ROLE_REQUIREMENTS[role]) {
+      if (!Object.hasOwn(ROLE_REQUIREMENTS, role)) {
         ctx.ui.notify(`Unknown role. Choose: ${Object.keys(ROLE_REQUIREMENTS).join(", ")}`, "error");
         return;
       }
-      activeRole = role;
-      ctx.ui.notify(`Router role set to ${role}. It applies to the next user request.`, "info");
+      setRouterRole(role);
+      ctx.ui.notify(`Router role set to ${role}. It applies to the next user request using router/auto.`, "info");
     },
   });
   pi.registerCommand("router-status", {
-    description: "Show the active capability-routing role",
+    description: "Show the effective routing role, selection, and last physical response model",
     handler: async (_args, ctx) => {
-      const profile = ROLE_REQUIREMENTS[activeRole] ?? ROLE_REQUIREMENTS.default;
-      ctx.ui.notify(`Role: ${activeRole}; requirements: ${JSON.stringify(profile)}`, "info");
+      let role: string;
+      try {
+        role = getRouterRole();
+      } catch (error) {
+        ctx.ui.notify(`${error instanceof Error ? error.message : error}. Use /router-role to choose a valid role.`, "error");
+        return;
+      }
+      const profile = ROLE_REQUIREMENTS[role];
+      const selection = ctx.model ? `${ctx.model.provider}/${ctx.model.id}` : "unknown";
+      const routed = selection === `${ROUTER_PROVIDER}/auto`;
+      const lastResponse = ctx.sessionManager.getBranch().findLast(
+        (entry) => entry.type === "message" && entry.message.role === "assistant",
+      );
+      const message = lastResponse?.type === "message" && lastResponse.message.role === "assistant"
+        ? lastResponse.message : undefined;
+      const physical = message?.provider && message.model && message.provider !== ROUTER_PROVIDER
+        ? `${message.provider}/${message.model}`
+        : "unknown (no physical response metadata on this branch)";
+      ctx.ui.notify([
+        `Role: ${role}; base requirements: ${JSON.stringify(profile)}`,
+        `Selected model: ${selection}; routing: ${routed ? "active for the next user request" : "inactive (select router/auto to apply this role)"}`,
+        `Last physical response model: ${physical}`,
+        "Role profiles select capabilities, not tool permissions or advisor isolation.",
+      ].join("\n"), "info");
     },
   });
   pi.registerVirtualModel<RouterState>({
