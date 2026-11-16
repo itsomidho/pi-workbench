@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.5.13 - 2026-11-16
+
+- Align think skill and workflow approval gates, advisor boundaries, and coordinator-only fallback disclosure.
+- Make session router-role changes override the initial environment role consistently.
+- Report effective role, selected model, and branch-local physical response metadata separately.
+- Reject unknown router roles explicitly and clarify that capability profiles do not enforce tool permissions.
+- Add regression coverage for router behavior and think instruction contracts.
+
 ## 0.5.12 - Unreleased
 
 - Resolve adapter base URLs before Pi sends model requests.
