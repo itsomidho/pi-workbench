@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import { configRoot, loadDomain, packPath } from './domains.mjs';
 import fs from 'node:fs';
 import path from 'node:path';
 
@@ -9,7 +10,8 @@ if (!valid(domain) || !valid(name)) {
   process.exit(2);
 }
 const standardsRoot = path.resolve(standardsRootArg ?? process.env.PI_STANDARDS_DIR ?? path.join(process.env.HOME ?? '.', '.pi/standards'));
-const template = path.resolve(new URL(`../domains/${domain}/standards/projects/PROJECT.template.md`, import.meta.url).pathname);
+const pack = loadDomain(configRoot(), domain);
+const template = packPath(pack.dir, `${pack.standards}/projects/PROJECT.template.md`);
 if (!fs.existsSync(template)) throw new Error(`No standards template for domain: ${domain}`);
 const destination = path.join(standardsRoot, domain, 'projects', `${name}.md`);
 if (fs.existsSync(destination)) throw new Error(`Project file already exists: ${destination}`);

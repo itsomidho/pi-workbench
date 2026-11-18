@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "domain": "laravel",
+  "gates": [
+    {
+      "id": "scope-and-approval",
+      "evidence": "Confirmed repository, local standards, explicit plan approval, and recorded environment."
+    },
+    {
+      "id": "verification",
+      "evidence": "Use the project's recorded PHP/Composer/container commands. Typical candidates, not automatic requirements: `php artisan test`, the configured PHPUnit/Pest command, the project's Pint/PHPStan/Larastan checks, and its asset build."
+    },
+    {
+      "id": "security",
+      "evidence": "Check Form Request validation and authorize(), policies/middleware, mass assignment, tenant scoping, bound SQL parameters, Blade escaping, CSRF on browser forms, signed URLs when applicable, and secret/log redaction."
+    },
+    {
+      "id": "deployment",
+      "evidence": "Migration/worker/cache deployment impact, recovery plan, and unresolved risks recorded; no production operations automatically executed."
+    }
+  ]
+}

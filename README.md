@@ -132,6 +132,18 @@ Do not run `piw adapter create` again for an existing adapter. Use `check`, `ins
 
 See [docs/adapters.md](docs/adapters.md) and [docs/tabdl.md](docs/tabdl.md).
 
+## Domain discovery
+
+`/think` and `/development` select a domain from installed packs and repository evidence; they do not default to WordPress. Adding a valid `domains/<id>/domain.json` pack requires no edits to Think or package resource lists. Reload Pi after adding a pack.
+
+```bash
+piw domain list
+piw domain check
+piw domain detect /path/to/project
+```
+
+See [docs/domains.md](docs/domains.md) for the manifest contract, adding packs, routing, skill names, and execution limitations. WordPress, Laravel, Django, Next.js, and Nuxt development packs ship with this build. Other stacks require their own packs or an approved main-session fallback.
+
 ## Tasks and managed workflows
 
 Initialize a domain project and create a task:
@@ -147,11 +159,15 @@ Inside Pi, use `/think` to produce a plan. Approve the plan explicitly, then sta
 /task-go wordpress/my-site/<date-slug>
 ```
 
-The workflow can run implementation, review, bounded fix/review loops, QA, tests, audit, and finish. It pauses for missing handoffs, approval, user input, or exceeded limits. A completed task writes:
+The workflow can run implementation, review, bounded fix/review loops, QA, tests, audit, and finish. It pauses for missing handoffs, approval, user input, or exceeded limits. Completed, blocked, stopped, and aborted runs produce consistent JSON, Markdown, and offline dark HTML reports:
 
 ```text
 $HOME/.pi/tasks/wordpress/my-site/<date-slug>/FINAL.md
+$HOME/.pi/tasks/wordpress/my-site/<date-slug>/reports/final.json
+$HOME/.pi/tasks/wordpress/my-site/<date-slug>/reports/final.html
 ```
+
+Reports distinguish recorded results, unverified checks, acceptance, risks, and commit/publication/deployment status. Main-session work can use `piw report init <slug> <title>` and `piw report generate <task-directory> <status>` without a framework workflow. See [docs/reports.md](docs/reports.md) for the schema, evidence inputs, privacy limitations, dark UI, and light printing.
 
 Commits, pushes, publishing, merge requests, reset, clean, and other repository actions require explicit user control.
 
@@ -175,7 +191,8 @@ Credential files are mode `0600` and are never committed. Do not copy host crede
 ```bash
 git clone https://github.com/itsomidho/pi-workbench.git
 cd pi-workbench
-./scripts/install.sh
+npm link --ignore-scripts
+pi install "$PWD"
 npm test
 npm run check
 git diff --check

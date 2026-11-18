@@ -1,0 +1,45 @@
+{
+  "name": "django-development",
+  "stages": {
+    "plan": {
+      "status": "awaiting-approval",
+      "role": "planner",
+      "report": "01-plan"
+    },
+    "implement": {
+      "status": "implementing",
+      "role": "developer",
+      "report": "02-implement"
+    },
+    "review": {
+      "status": "reviewing",
+      "role": "code-reviewer",
+      "report": "03-review"
+    },
+    "fix": {
+      "status": "fixing",
+      "role": "developer",
+      "report": "04-fix"
+    },
+    "qa": {
+      "status": "qa",
+      "role": "qa",
+      "report": "05-qa"
+    },
+    "test": {
+      "status": "testing",
+      "role": "test-writer",
+      "report": "06-test"
+    },
+    "audit": {
+      "status": "auditing",
+      "role": "security-auditor",
+      "report": "07-audit"
+    },
+    "finish": {
+      "status": "finishing",
+      "role": "developer",
+      "report": "08-finish"
+    }
+  }
+}

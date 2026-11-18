@@ -6,5 +6,26 @@
   "skills": "./skills",
   "standards": "./standards",
   "workflows": "./workflows",
-  "qualityGates": "./quality-gates.json"
+  "qualityGates": "./quality-gates.json",
+  "detection": {
+    "any": [
+      { "all": [{ "path": "wp-config.php" }] },
+      { "all": [{ "path": "wp-content" }] },
+      { "all": [{ "path": "web/wp" }, { "path": "web/app" }] },
+      { "all": [{ "path": "composer.json", "jsonDependency": "roots/sage" }] },
+      { "all": [{ "path": "composer.json", "jsonDependency": "johnpbloch/wordpress" }] },
+      { "all": [{ "path": "composer.json", "jsonDependency": "roots/wordpress" }] }
+    ]
+  },
+  "routes": {
+    "development": {
+      "entry": "./workflows/development/SKILL.md",
+      "engine": "managed-development-v1",
+      "stages": "./workflows/development/workflow.json"
+    },
+    "merge-request-review": {
+      "entry": "./workflows/merge-request-review/SKILL.md",
+      "engine": "main-session"
+    }
+  }
 }

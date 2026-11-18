@@ -57,28 +57,30 @@ php -v
 
 ## Step 2 — Load the right references
 
+The reference files below are siblings of this SKILL.md. Resolve them relative to this skill directory, not the application repository.
+
 ### Universal references (both stacks)
 
-- **`references/security.md`** — Sanitize / validate / escape, nonces, capabilities, SQL safety, file uploads, AJAX, REST. Includes Blade-specific escaping rules. **Read this for any code that touches user input.**
-- **`references/database.md`** — `$wpdb`, prepared statements, custom tables with `dbDelta`, post meta, storage decision matrix, Eloquent basics (Roots).
-- **`references/performance.md`** — `WP_Query` optimization flags, caching (transients, object cache, Laravel Cache), autoload bloat, asset loading, profiling.
-- **`references/rest-api.md`** — Custom endpoints, `permission_callback`, validation/sanitization in `args`, extending core endpoints, authentication.
-- **`references/wp-cli.md`** — `search-replace` for migrations, core/db/post/user/option/cron commands, `wp acorn` scaffolding, custom commands.
-- **`references/coding-standards.md`** — WPCS rules, naming, prefixing, file layout, PHP 8 in WP, PHPCS setup.
+- **`security.md`** — Sanitize / validate / escape, nonces, capabilities, SQL safety, file uploads, AJAX, REST. Includes Blade-specific escaping rules. **Read this for any code that touches user input.**
+- **`database.md`** — `$wpdb`, prepared statements, custom tables with `dbDelta`, post meta, storage decision matrix, Eloquent basics (Roots).
+- **`performance.md`** — `WP_Query` optimization flags, caching (transients, object cache, Laravel Cache), autoload bloat, asset loading, profiling.
+- **`rest-api.md`** — Custom endpoints, `permission_callback`, validation/sanitization in `args`, extending core endpoints, authentication.
+- **`wp-cli.md`** — `search-replace` for migrations, core/db/post/user/option/cron commands, `wp acorn` scaffolding, custom commands.
+- **`coding-standards.md`** — WPCS rules, naming, prefixing, file layout, PHP 8 in WP, PHPCS setup.
 
 ### Vanilla WordPress references
 
-- **`references/plugin-development.md`** — Plugin anatomy, lifecycle hooks, Settings API, options / transients / meta decision matrix, CPT registration, asset enqueuing, i18n.
-- **`references/theme-development.md`** — Block themes vs classic themes, `theme.json` v3, templates, template parts, patterns, style variations, `functions.php` patterns.
-- **`references/gutenberg-blocks.md`** — `block.json` v3, static vs dynamic blocks, `@wordpress/scripts`, InnerBlocks, InspectorControls, Interactivity API, common pitfalls.
+- **`plugin-development.md`** — Plugin anatomy, lifecycle hooks, Settings API, options / transients / meta decision matrix, CPT registration, asset enqueuing, i18n.
+- **`theme-development.md`** — Block themes vs classic themes, `theme.json` v3, templates, template parts, patterns, style variations, `functions.php` patterns.
+- **`gutenberg-blocks.md`** — `block.json` v3, static vs dynamic blocks, `@wordpress/scripts`, InnerBlocks, InspectorControls, Interactivity API, common pitfalls.
 
 ### Roots stack references
 
-- **`references/sage-theme.md`** — Directory structure, `setup.php`, `filters.php`, Vite config, `@vite` directive, Tailwind CSS, template hierarchy in Blade, deployment.
-- **`references/blade-templates.md`** — `{{ }}` vs `{!! !!}`, layouts, partials, components, the Loop in Blade, View Composers: construction, auto-binding, `with()` vs `override()`.
-- **`references/service-providers.md`** — Booting Acorn in themes and plugins, `register()` vs `boot()`, service container bindings, `ThemeServiceProvider`, plugin structure.
-- **`references/acorn-laravel.md`** — Laravel Cache, Eloquent ORM, Migrations, Routing, Livewire, custom console commands, Logging.
-- **`references/wp-integration.md`** — Hooks in providers, CPTs/taxonomies in Roots, `WP_Query` in Composers, REST routes from providers, admin pages, shortcodes with Blade.
+- **`sage-theme.md`** — Directory structure, `setup.php`, `filters.php`, Vite config, `@vite` directive, Tailwind CSS, template hierarchy in Blade, deployment.
+- **`blade-templates.md`** — `{{ }}` vs `{!! !!}`, layouts, partials, components, the Loop in Blade, View Composers: construction, auto-binding, `with()` vs `override()`.
+- **`service-providers.md`** — Booting Acorn in themes and plugins, `register()` vs `boot()`, service container bindings, `ThemeServiceProvider`, plugin structure.
+- **`acorn-laravel.md`** — Laravel Cache, Eloquent ORM, Migrations, Routing, Livewire, custom console commands, Logging.
+- **`wp-integration.md`** — Hooks in providers, CPTs/taxonomies in Roots, `WP_Query` in Composers, REST routes from providers, admin pages, shortcodes with Blade.
 
 ---
 
@@ -101,7 +103,7 @@ Use `add_action` / `add_filter`. Never touch `wp-includes/`, `wp-admin/`, or thi
 
 ### 4. Nonces for state changes
 
-Every form, AJAX endpoint, REST route, or URL that modifies state needs a nonce. Generate with `wp_nonce_field` / `wp_create_nonce`, verify with `check_admin_referer` / `wp_verify_nonce` / `check_ajax_referer`. Nonces are CSRF protection, not authentication — always pair with a capability check.
+Cookie/session-authenticated forms, AJAX endpoints, REST routes, and URLs that modify state need CSRF nonce protection. Header-based bearer/application-password authentication follows its own verified strategy; do not require a browser cookie nonce indiscriminately. Generate with `wp_nonce_field` / `wp_create_nonce`, verify with `check_admin_referer` / `wp_verify_nonce` / `check_ajax_referer`. Nonces are CSRF protection, not authentication — always pair with a capability check.
 
 ### 5. Check capabilities
 

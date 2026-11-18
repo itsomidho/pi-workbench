@@ -233,7 +233,7 @@ add_action( 'rest_api_init', function () {
         'permission_callback' => static fn ( $req ) => current_user_can( 'edit_post', $req['id'] ),
         'args' => [
             'id'    => [ 'sanitize_callback' => 'absint' ],
-            'title' => [ 'required' => true, 'type' => 'string', 'sanitize_callback' => 'sanitize_text_field' ],
+            'title' => [ 'required' => true, 'type' => 'string', 'validate_callback' => 'rest_validate_request_arg', 'sanitize_callback' => 'sanitize_text_field' ],
         ],
     ] );
 } );
@@ -263,7 +263,7 @@ function acme_rest_update_item( WP_REST_Request $request ) {
 - [ ] Every echo of dynamic data is escaped with the right function for the context
 - [ ] In Blade: all `{!! !!}` is pre-sanitized; `{{ }}` used for plain text and attributes
 - [ ] Every form has a nonce; handler verifies it
-- [ ] Every AJAX / REST handler checks nonce AND capability
+- [ ] AJAX / REST handlers enforce the intended authentication and capabilities; cookie/session-authenticated mutations also enforce CSRF nonces (application-password/bearer auth follows its own strategy)
 - [ ] Every `$wpdb` query uses `prepare()` or is a static string
 - [ ] No `eval`, no `unserialize` on untrusted data, no interpolated SQL
 - [ ] File uploads go through `wp_handle_upload` with MIME allowlist

@@ -12,6 +12,11 @@ function usage() {
   console.log(`Pi Workbench ${version}
 
 Usage:
+  piw report init <slug> <title>
+  piw report generate <task-directory> [status] [details.json]
+  piw domain list
+  piw domain check
+  piw domain detect [project-directory]
   piw init <domain> <project>
   piw init-from-think <domain> <project> <slug> <think-note>
   piw task create <domain> <project> <slug> <title>
@@ -71,6 +76,16 @@ if (!group || group === 'help' || group === '--help' || group === '-h') {
 if (group === 'version' || group === '--version' || group === '-v') {
   console.log(version);
   process.exit(0);
+}
+if (group === 'report') {
+  run(process.execPath, [path.join(root, 'scripts', 'report-cli.mjs'), action, ...args], { cwd: safeCwd() });
+}
+if (group === 'domain') {
+  run(process.execPath, [path.join(root, 'scripts', 'domain-cli.mjs'), action, ...args], { cwd: safeCwd() });
+}
+// These commands take positional arguments immediately after the command name.
+if (group === 'init' || group === 'init-from-think') {
+  run(process.execPath, [path.join(root, 'scripts', group === 'init' ? 'init-project.mjs' : 'create-task-from-think.mjs'), ...[action, ...args].filter(Boolean)]);
 }
 if (group === 'adapter') {
   run(process.execPath, [path.join(root, 'scripts', 'adapter.mjs'), action, ...args], { cwd: safeCwd() });

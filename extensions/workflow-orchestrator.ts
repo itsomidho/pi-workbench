@@ -1,11 +1,16 @@
-import crypto from "node:crypto";
+import { domainStageContext } from "../scripts/domains.mjs";
+import { requestRouterRole } from "../scripts/router-role.mjs";
+import { assertApprovedPlan } from "../scripts/workflow-approval.mjs";
+import { previousStage, nextWorkflowStage, validHandoff as validBrief } from "../scripts/workflow-progress.mjs";
 import fs from "node:fs";
 import path from "node:path";
 import { Type } from "typebox";
+import { randomUUID } from "node:crypto";
+import { writeTaskReport } from "../scripts/report-render.mjs";
 import type { ExtensionAPI, ExtensionContext } from "@earendil-works/pi-coding-agent";
 
 type Stage = "implement" | "review" | "fix" | "qa" | "test" | "audit" | "finish";
-type RunState = { taskDir: string; identifier: string; stage: Stage; fixRounds: number; maxFixRounds: number; handoffRetries: number; active: boolean };
+type RunState = { taskDir: string; identifier: string; stage: Stage; fixRounds: number; maxFixRounds: number; handoffRetries: number; active: boolean; attemptId?: string; runId?: string; stopRequested?: boolean; reportStatus?: string; reportReason?: string };
 const stages: Stage[] = ["implement", "review", "fix", "qa", "test", "audit", "finish"];
 
 function tasksRoot() { return process.env.PI_TASKS_DIR ?? path.join(process.env.HOME ?? ".", ".pi/tasks"); }
@@ -18,78 +23,24 @@ function taskDir(identifier: string) {
   return dir.startsWith(`${root}${path.sep}`) ? dir : null;
 }
 function readRun(): RunState | null { return fs.existsSync(runFile()) ? JSON.parse(fs.readFileSync(runFile(), "utf8")) : null; }
-function latestApprovedTask() {
-  const root = path.resolve(tasksRoot());
-  let candidate: { identifier: string; taskDir: string; mtime: number } | null = null;
-  if (!fs.existsSync(root)) return null;
-  for (const domainEntry of fs.readdirSync(root, { withFileTypes: true })) {
-    if (!domainEntry.isDirectory()) continue;
-    const domain = domainEntry.name;
-    for (const project of fs.readdirSync(path.join(root, domain), { withFileTypes: true }).filter((entry) => entry.isDirectory()).map((entry) => entry.name)) {
-    const projectDir = path.join(root, domain, project);
-    for (const task of fs.readdirSync(projectDir)) {
-      const dir = path.join(projectDir, task);
-      if (!fs.existsSync(statusFile(dir)) || status(dir) !== "implementing") continue;
-      const item = { identifier: `${domain}/${project}/${task}`, taskDir: dir, mtime: fs.statSync(statusFile(dir)).mtimeMs };
-      if (!candidate || item.mtime > candidate.mtime) candidate = item;
-    }
-    }
-  }
-  return candidate;
-}
+
 function writeRun(state: RunState) {
   fs.mkdirSync(tasksRoot(), { recursive: true });
   fs.writeFileSync(runFile(), JSON.stringify(state, null, 2) + "\n");
   const stateFile = path.join(state.taskDir, "artifacts", "state.json");
   fs.mkdirSync(path.dirname(stateFile), { recursive: true });
   const current = fs.existsSync(stateFile) ? JSON.parse(fs.readFileSync(stateFile, "utf8")) : { schemaVersion: 1 };
-  fs.writeFileSync(stateFile, JSON.stringify({ ...current, stage: state.stage, fixRounds: state.fixRounds, maxFixRounds: state.maxFixRounds, active: state.active, updatedAt: new Date().toISOString() }, null, 2) + "\n");
+  fs.writeFileSync(stateFile, JSON.stringify({ ...current, runId: state.runId, reportStatus: state.reportStatus, reportReason: state.reportReason, stage: state.stage, fixRounds: state.fixRounds, maxFixRounds: state.maxFixRounds, active: state.active, updatedAt: new Date().toISOString() }, null, 2) + "\n");
 }
-function recordUsage(dir: string, message: any) {
+function recordUsage(state: RunState, message: any) {
   if (message?.role !== "assistant" || !message.usage) return;
-  const file = path.join(dir, "artifacts", "usage.jsonl");
+  const file = path.join(state.taskDir, "artifacts", "usage.jsonl");
   fs.mkdirSync(path.dirname(file), { recursive: true });
-  fs.appendFileSync(file, JSON.stringify({ timestamp: new Date().toISOString(), model: message.model, usage: message.usage }) + "\n");
+  fs.appendFileSync(file, JSON.stringify({ timestamp: new Date().toISOString(), runId: state.runId, provider: message.provider, model: message.model, usage: message.usage }) + "\n");
 }
 function statusFile(dir: string) { return path.join(dir, "TASK.md"); }
 function status(dir: string) { return fs.readFileSync(statusFile(dir), "utf8").match(/^\| Status \| (.+) \|$/m)?.[1]; }
-function approveLatestTask() {
-  const root = path.resolve(tasksRoot());
-  let candidate: { taskDir: string; identifier: string; mtime: number } | null = null;
-  if (!fs.existsSync(root)) return null;
-  for (const domainEntry of fs.readdirSync(root, { withFileTypes: true })) {
-    if (!domainEntry.isDirectory()) continue;
-    const domain = domainEntry.name;
-    for (const projectEntry of fs.readdirSync(path.join(root, domain), { withFileTypes: true })) {
-      if (!projectEntry.isDirectory()) continue;
-      const project = projectEntry.name;
-      for (const task of fs.readdirSync(path.join(root, domain, project))) {
-        const dir = path.join(root, domain, project, task);
-        if (status(dir) !== "awaiting-approval") continue;
-        const file = statusFile(dir);
-        const item = { taskDir: dir, identifier: `${domain}/${project}/${task}`, mtime: fs.statSync(file).mtimeMs };
-        if (!candidate || item.mtime > candidate.mtime) candidate = item;
-      }
-    }
-  }
-  return candidate;
-}
-function approveTask(dir: string) {
-  const file = statusFile(dir);
-  const text = fs.readFileSync(file, "utf8");
-  const plan = text.match(/## Plan\n([\s\S]*?)(?=\n## |$)/)?.[1]?.trim() ?? "";
-  if (!plan || /^Not approved yet\.?$/i.test(plan)) throw new Error("Cannot approve an empty or unprepared plan");
-  fs.writeFileSync(file, text.replace(/^(\| Status \| ).*?( \|)$/m, "$1implementing$2").replace("## Decisions and constraints\n", "## Decisions and constraints\n- Plan approved by user through Pi task workflow.\n"));
-  const sharedFile = path.join(dir, "artifacts", "shared-context.json");
-  if (fs.existsSync(sharedFile)) {
-    const shared = JSON.parse(fs.readFileSync(sharedFile, "utf8"));
-    shared.planVersion = (shared.planVersion ?? 0) + 1;
-    shared.approvedPlanHash = crypto.createHash("sha256").update(plan).digest("hex");
-    shared.status = "implementing";
-    shared.updatedAt = new Date().toISOString();
-    fs.writeFileSync(sharedFile, JSON.stringify(shared, null, 2) + "\n");
-  }
-}
+
 function updateStatus(dir: string, next: string) {
   const file = statusFile(dir);
   const text = fs.readFileSync(file, "utf8");
@@ -102,33 +53,32 @@ function updateStatus(dir: string, next: string) {
     fs.writeFileSync(sharedFile, JSON.stringify(shared, null, 2) + "\n");
   }
 }
-function planHash(dir: string) {
-  const text = fs.readFileSync(statusFile(dir), "utf8");
-  const plan = text.match(/## Plan\n([\s\S]*?)(?=\n## |$)/)?.[1]?.trim() ?? "";
-  return crypto.createHash("sha256").update(plan).digest("hex");
-}
 function brief(dir: string, stage: string): any | null {
   const file = path.join(dir, "artifacts", "briefs", `${stage}.json`);
-  return fs.existsSync(file) ? JSON.parse(fs.readFileSync(file, "utf8")) : null;
+  try { return fs.existsSync(file) ? JSON.parse(fs.readFileSync(file, "utf8")) : null; }
+  catch { return null; } // A damaged handoff follows the same bounded retry path as a missing one.
 }
-function writeBrief(dir: string, stage: string, input: any) {
+function writeBrief(dir: string, stage: string, input: any, attemptId: string, runId?: string) {
   const file = path.join(dir, "artifacts", "briefs", `${stage}.json`);
   fs.mkdirSync(path.dirname(file), { recursive: true });
-  const value = { schemaVersion: 1, stage, status: "completed", summary: input.summary, changedFiles: input.changedFiles ?? [], findings: input.findings ?? [], commandsRun: input.commandsRun ?? [], knownRisks: input.knownRisks ?? [], nextChecks: input.nextChecks ?? [], evidence: input.evidence ?? [], createdAt: new Date().toISOString() };
+  const value = { schemaVersion: 1, stage, attemptId, runId, reportDetails: input.reportDetails, status: "completed", summary: input.summary, changedFiles: input.changedFiles ?? [], findings: input.findings ?? [], commandsRun: input.commandsRun ?? [], knownRisks: input.knownRisks ?? [], nextChecks: input.nextChecks ?? [], evidence: input.evidence ?? [], createdAt: new Date().toISOString() };
   fs.writeFileSync(file, JSON.stringify(value, null, 2) + "\n");
   return value;
 }
-function validBrief(value: any, expectedStage: string) {
-  return value?.schemaVersion === 1 && value.stage === expectedStage && value.status === "completed" && typeof value.summary === "string" && ["changedFiles", "findings", "commandsRun", "knownRisks", "nextChecks", "evidence"].every((key) => Array.isArray(value[key]));
-}
-function writeFinalReport(state: RunState) {
-  const briefsDir = path.join(state.taskDir, "artifacts", "briefs");
-  const briefs = fs.existsSync(briefsDir) ? fs.readdirSync(briefsDir).filter((file) => file.endsWith(".json")).sort().map((file) => JSON.parse(fs.readFileSync(path.join(briefsDir, file), "utf8"))) : [];
-  const usageFile = path.join(state.taskDir, "artifacts", "usage.jsonl");
-  const usage = fs.existsSync(usageFile) ? fs.readFileSync(usageFile, "utf8").trim().split("\n").filter(Boolean).map((line) => JSON.parse(line)) : [];
-  const totals = usage.reduce((sum, item) => { const u = item.usage ?? {}; sum.input += Number(u.input ?? u.inputTokens ?? 0); sum.output += Number(u.output ?? u.outputTokens ?? 0); sum.cost += Number(u.cost?.total ?? u.cost ?? 0); return sum; }, { input: 0, output: 0, cost: 0 });
-  const lines = [`# Final Workflow Report`, ``, `- Task: ${state.identifier}`, `- Fix rounds: ${state.fixRounds}/${state.maxFixRounds}`, `- Completed: ${new Date().toISOString()}`, ``, `## Stage summaries`, ...briefs.map((item) => `- **${item.stage}**: ${item.summary}`), ``, `## Findings`, ...briefs.flatMap((item) => (item.findings ?? []).map((finding: any) => `- [${finding.severity ?? "info"}] ${finding.summary ?? JSON.stringify(finding)}`)), ``, `## Usage`, `- Model responses: ${usage.length}`, `- Input tokens: ${totals.input}`, `- Output tokens: ${totals.output}`, `- Reported cost: ${totals.cost}`];
-  fs.writeFileSync(path.join(state.taskDir, "FINAL.md"), lines.join("\n") + "\n");
+function finalizeRun(state: RunState, ctx: ExtensionContext, reportStatus: "completed" | "blocked" | "stopped", reason: string) {
+  state.active = false;
+  state.stopRequested = false;
+  state.reportStatus = reportStatus;
+  state.reportReason = reason;
+  writeRun(state);
+  if (reportStatus === "completed") updateStatus(state.taskDir, "done");
+  if (reportStatus === "blocked") updateStatus(state.taskDir, "blocked");
+  try {
+    const result = writeTaskReport(state.taskDir, { status: reportStatus, reason, runId: state.runId });
+    ctx.ui.notify(`Task ${reportStatus}. Report: ${result.paths.html}`, reportStatus === "completed" ? "info" : "warning");
+  } catch {
+    ctx.ui.notify(`Task ${reportStatus}, but report generation failed. Retry: piw report generate "${state.taskDir}" ${reportStatus}`, "error");
+  }
 }
 function promptFor(state: RunState, context: any) {
   const instructions: Record<Stage, string> = {
@@ -138,36 +88,39 @@ function promptFor(state: RunState, context: any) {
     qa: "Run relevant user-facing QA scenarios and record evidence, including console, network, responsive, accessibility, and cache checks when applicable.",
     test: "Run or add focused tests for the changed behavior. Prefer deterministic commands and record their results.",
     audit: "Run the relevant security and quality audits within the approved scope. Record findings and evidence.",
-    finish: "Prepare the final report from the shared context and stage briefs. Do not commit, push, publish, or open a merge request.",
+    finish: "Summarize issue, approved plan, changes, deviations, acceptance criteria, verification outcomes, risks, follow-ups, and delivery evidence in workflow_handoff.reportDetails. The runtime generates reports/final.json, reports/final.html, and FINAL.md. Do not claim checks passed from a command name or infer delivery from completion. Do not commit, push, publish, or open a merge request.",
   };
   const handoffRetry = state.handoffRetries > 0 ? "The previous response did not create a valid handoff. Call workflow_handoff now with the evidence already collected." : "";
   return `${handoffRetry}\n${instructions[state.stage]}\n\nTask directory: ${state.taskDir}\nShared context: ${path.join(state.taskDir, "artifacts/shared-context.json")}\nPrevious brief: ${JSON.stringify(context)}\nExpected handoff stage: ${stageNumber(state.stage)}-${state.stage}\nHandoff brief path: ${path.join(state.taskDir, "artifacts", "briefs", `${stageNumber(state.stage)}-${state.stage}.json`)}\nWrite the human report and call the workflow_handoff tool with the completed summary and evidence. Stop and request user input for destructive actions, missing access, unresolved scope, or repeated failure.`;
 }
 function stageNumber(stage: Stage) { return String(stages.indexOf(stage) + 2).padStart(2, "0"); }
 function previousBrief(state: RunState) {
-  const index = stages.indexOf(state.stage);
-  if (index <= 0) return null;
-  const previous = stages[index - 1];
-  return brief(state.taskDir, `${stageNumber(previous)}-${previous}`);
+  const previous = previousStage(state.stage, state.fixRounds) as Stage | null;
+  return previous ? brief(state.taskDir, `${stageNumber(previous)}-${previous}`) : null;
 }
-function nextStage(state: RunState, result: any): Stage | "done" | "blocked" {
-  if (state.stage === "review") {
-    const findings = Array.isArray(result?.findings) ? result.findings : [];
-    if (findings.some((item: any) => item?.blocking !== false && ["critical", "high", "medium"].includes(item?.severity))) return state.fixRounds < state.maxFixRounds ? "fix" : "blocked";
-    return "qa";
-  }
-  if (state.stage === "fix") return "review";
-  const index = stages.indexOf(state.stage);
-  return stages[index + 1] ?? "done";
-}
-async function launch(state: RunState, ctx: ExtensionContext, send: (prompt: string) => void | Promise<void>) {
-  const previous = previousBrief(state);
-  process.env.PI_ROUTER_ROLE = ({ implement: "developer", review: "code-reviewer", fix: "developer", qa: "qa", test: "test-writer", audit: "security-auditor", finish: "developer" } as Record<Stage, string>)[state.stage];
-  ctx.ui.notify(`Workflow stage: ${state.stage} (${process.env.PI_ROUTER_ROLE})`, "info");
-  await send(promptFor(state, previous));
+function launchWith(pi: ExtensionAPI) {
+  return async function launch(state: RunState, ctx: ExtensionContext, send: (prompt: string) => void | Promise<void>) {
+    try {
+      assertApprovedPlan(state.taskDir);
+      const previous = previousBrief(state);
+      const domain = domainStageContext(state.identifier.split("/")[0], state.stage);
+      requestRouterRole(pi, domain.routerRole);
+      state.runId ??= randomUUID();
+      state.stopRequested = false;
+      state.reportStatus = "in-progress";
+      state.reportReason = "";
+      state.attemptId = randomUUID();
+      writeRun(state);
+      ctx.ui.notify(`Workflow stage: ${state.stage} (${domain.role}; current session)`, "info");
+      await send(`${promptFor(state, previous)}\n\n${domain.text}`);
+    } catch (error) {
+      finalizeRun(state, ctx, "blocked", `Workflow could not continue: ${error instanceof Error ? error.message : String(error)}`);
+    }
+  };
 }
 
 export default function (pi: ExtensionAPI) {
+  const launch = launchWith(pi);
   pi.registerTool({
     name: "workflow_handoff",
     label: "Workflow handoff",
@@ -181,13 +134,24 @@ export default function (pi: ExtensionAPI) {
       knownRisks: Type.Optional(Type.Array(Type.Any())),
       nextChecks: Type.Optional(Type.Array(Type.Any())),
       evidence: Type.Optional(Type.Array(Type.Any())),
+      reportDetails: Type.Optional(Type.Object({
+        summary: Type.Optional(Type.String()),
+        changes: Type.Optional(Type.Array(Type.Any())),
+        verification: Type.Optional(Type.Array(Type.Any())),
+        acceptanceCriteria: Type.Optional(Type.Array(Type.Any())),
+        planDeviations: Type.Optional(Type.Array(Type.String())),
+        risks: Type.Optional(Type.Array(Type.String())),
+        nextSteps: Type.Optional(Type.Array(Type.String())),
+        delivery: Type.Optional(Type.Any()),
+      })),
     }),
     async execute(_toolCallId, params) {
       const state = readRun();
       if (!state?.active) return { content: [{ type: "text", text: "No active workflow." }], details: {} };
       const expected = `${stageNumber(state.stage)}-${state.stage}`;
       if (params.stage !== expected) return { content: [{ type: "text", text: `Expected handoff stage ${expected}.` }], details: {} };
-      const value = writeBrief(state.taskDir, expected, params);
+      if (!state.attemptId) throw new Error("No active stage attempt; resume the workflow first.");
+      const value = writeBrief(state.taskDir, expected, params, state.attemptId, state.runId);
       return { content: [{ type: "text", text: `Handoff saved: ${expected}` }], details: value };
     },
   });
@@ -212,14 +176,11 @@ export default function (pi: ExtensionAPI) {
       const dir = taskDir(identifier);
       if (!dir || !fs.existsSync(statusFile(dir))) { ctx.ui.notify("Usage: /task-go <domain>/<project>/<date-slug>", "error"); return; }
       if (status(dir) !== "implementing") { ctx.ui.notify(`Task must be approved and implementing; current status is ${status(dir) ?? "unknown"}.`, "error"); return; }
-      const sharedFile = path.join(dir, "artifacts", "shared-context.json");
-      if (fs.existsSync(sharedFile)) {
-        const shared = JSON.parse(fs.readFileSync(sharedFile, "utf8"));
-        if (shared.approvedPlanHash && shared.approvedPlanHash !== planHash(dir)) { ctx.ui.notify("Workflow blocked: the approved plan changed and requires approval again.", "error"); return; }
-      }
+      try { assertApprovedPlan(dir); }
+      catch (error) { ctx.ui.notify(error instanceof Error ? error.message : String(error), "error"); return; }
       const existing = readRun();
-      if (existing?.active && existing.identifier !== identifier) { ctx.ui.notify(`Another workflow is active: ${existing.identifier}`, "error"); return; }
-      const state: RunState = { taskDir: dir, identifier, stage: "implement", fixRounds: 0, maxFixRounds: 2, handoffRetries: 0, active: true };
+      if (existing?.active) { ctx.ui.notify(`Another workflow is active: ${existing.identifier}`, "error"); return; }
+      const state: RunState = { taskDir: dir, identifier, runId: randomUUID(), stage: "implement", fixRounds: 0, maxFixRounds: 2, handoffRetries: 0, active: true };
       writeRun(state);
       await launch(state, ctx, (prompt) => pi.sendUserMessage(prompt, { triggerTurn: true }));
     },
@@ -230,22 +191,16 @@ export default function (pi: ExtensionAPI) {
     handler: async (_args, ctx) => {
       const state = readRun();
       if (!state?.active) { ctx.ui.notify("No active workflow.", "info"); return; }
-      state.active = false; writeRun(state); ctx.ui.notify("Workflow will stop after the current stage.", "info");
+      state.stopRequested = true;
+      writeRun(state);
+      if (ctx.isIdle()) finalizeRun(state, ctx, "stopped", "Stopped by the user.");
+      else ctx.ui.notify("Stop requested. The report will be generated when the current turn settles.", "info");
     },
   });
 
-  pi.on("input", async (event, ctx) => {
-    if (event.source === "extension" || event.text.trim().toLowerCase() !== "go") return { action: "continue" as const };
-    const active = readRun();
-    if (active?.active) return { action: "handled" as const };
-    const awaiting = approveLatestTask();
-    const approved = awaiting ? awaiting : latestApprovedTask();
-    if (!approved) return { action: "continue" as const };
-    const state: RunState = { taskDir: approved.taskDir, identifier: approved.identifier, stage: "implement", fixRounds: 0, maxFixRounds: 2, handoffRetries: 0, active: true };
-    writeRun(state);
-    await launch(state, ctx, (prompt) => pi.sendUserMessage(prompt, { triggerTurn: true }));
-    return { action: "handled" as const };
-  });
+  // Plain "go" belongs to the coordinator's approval conversation. It must not
+  // select a globally newest task from another project/domain. Managed execution
+  // starts only through /task-go with an explicit approved task identifier.
 
   pi.on("tool_call", async (event) => {
     const state = readRun();
@@ -256,29 +211,36 @@ export default function (pi: ExtensionAPI) {
 
   pi.on("message_end", async (event) => {
     const state = readRun();
-    if (state?.active) recordUsage(state.taskDir, event.message);
+    if (state?.active) recordUsage(state, event.message);
   });
 
-  pi.on("agent_settled", async (_event, ctx) => {
+  pi.on("agent_settled", async (event, ctx) => {
     const state = readRun();
     if (!state?.active) return;
+    if (event.aborted || state.stopRequested) {
+      finalizeRun(state, ctx, "stopped", event.aborted ? "Run aborted. No further stage was scheduled." : "Stopped by the user after the current turn.");
+      return;
+    }
+    try { assertApprovedPlan(state.taskDir); }
+    catch (error) {
+      finalizeRun(state, ctx, "blocked", error instanceof Error ? error.message : String(error));
+      return;
+    }
     const result = brief(state.taskDir, `${stageNumber(state.stage)}-${state.stage}`);
-    if (!validBrief(result, `${stageNumber(state.stage)}-${state.stage}`)) {
+    if (!validBrief(result, `${stageNumber(state.stage)}-${state.stage}`, state.attemptId)) {
       if (state.handoffRetries < 1) {
         state.handoffRetries += 1;
         writeRun(state);
         await launch(state, ctx, (prompt) => pi.sendUserMessage(prompt, { triggerTurn: true }));
         return;
       }
-      state.active = false;
-      writeRun(state);
-      ctx.ui.notify(`Workflow paused: missing valid ${state.stage} handoff brief after retry.`, "warning");
+      finalizeRun(state, ctx, "blocked", `Missing valid ${state.stage} handoff after one retry.`);
       return;
     }
     state.handoffRetries = 0;
-    const next = nextStage(state, result);
-    if (next === "blocked") { state.active = false; writeRun(state); updateStatus(state.taskDir, "blocked"); ctx.ui.notify("Workflow paused: maximum review/fix rounds reached.", "warning"); return; }
-    if (next === "done") { state.active = false; writeRun(state); updateStatus(state.taskDir, "done"); writeFinalReport(state); ctx.ui.notify("Workflow completed.", "info"); return; }
+    const next = nextWorkflowStage(state.stage, state.fixRounds, state.maxFixRounds, result) as Stage | "done" | "blocked";
+    if (next === "blocked") { finalizeRun(state, ctx, "blocked", "Blocking findings require a decision or the review/fix limit was reached."); return; }
+    if (next === "done") { finalizeRun(state, ctx, "completed", "The managed workflow finished. Verification and acceptance are reported separately."); return; }
     if (next === "fix") state.fixRounds += 1;
     state.stage = next;
     const statusMap: Record<Stage, string> = { implement: "implementing", review: "reviewing", fix: "fixing", qa: "qa", test: "testing", audit: "auditing", finish: "finishing" };

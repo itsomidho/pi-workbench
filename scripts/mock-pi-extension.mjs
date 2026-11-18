@@ -3,7 +3,8 @@ import { createAssistantMessageEventStream, ToolCallArgumentsStream } from '@ear
 function response(model, message, text, toolCall) {
   const stream = createAssistantMessageEventStream();
   const output = { role: 'assistant', content: [], api: model.api, provider: model.provider, model: model.id, usage: { input: 3, output: 2, cacheRead: 0, cacheWrite: 0, totalTokens: 5, cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, total: 0 } }, stopReason: 'pending', timestamp: Date.now() };
-  queueMicrotask(() => {
+  const schedule = ['abort', 'stop-turn'].includes(process.env.PI_MOCK_REPORT_SCENARIO) ? fn => setTimeout(fn, 1000) : queueMicrotask;
+  schedule(() => {
     stream.push({ type: 'start', partial: output });
     if (toolCall) {
       const tool = { type: 'toolCall', id: `mock-${Date.now()}`, name: 'workflow_handoff', arguments: {} };
@@ -37,9 +38,15 @@ export default function (pi) {
       const text = context.messages.map(message => typeof message.content === 'string' ? message.content : JSON.stringify(message.content)).join('\n');
       const expected = [...text.matchAll(/\b(02-implement|03-review|04-fix|05-qa|06-test|07-audit|08-finish)\.json/g)].at(-1);
       if (!text.includes('Task directory:')) return response(model, context, 'mock response');
+      if (process.env.PI_MOCK_EXPECT_DOMAIN) {
+        const latest = context.messages.filter(message => message.role === 'user').at(-1);
+        const prompt = typeof latest?.content === 'string' ? latest.content : JSON.stringify(latest?.content);
+        if (!prompt?.includes(`Domain: ${process.env.PI_MOCK_EXPECT_DOMAIN}`) || !prompt.includes('Role instructions (') || (process.env.PI_MOCK_EXPECT_ROLE && !prompt.includes(process.env.PI_MOCK_EXPECT_ROLE))) throw new Error('Selected domain role instructions were not loaded');
+      }
+      if (process.env.PI_MOCK_REPORT_SCENARIO === 'missing') return response(model, context, 'Deliberately no handoff');
       if (context.messages.at(-1)?.role === 'toolResult') return response(model, context, 'mock stage complete');
       const stageName = expected?.[1] ?? '02-implement';
-      return response(model, context, 'handoff', { stage: stageName, summary: `Mock completed ${expected[1]}`, changedFiles: [], findings: [], commandsRun: [`mock-${stageName}`], knownRisks: [], nextChecks: [], evidence: [{ description: 'mock provider evidence' }] });
+      return response(model, context, 'handoff', { stage: stageName, summary: `Mock completed ${expected[1]}`, changedFiles: [], findings: process.env.PI_MOCK_REPORT_SCENARIO === 'blocked' ? [{ id: 'mock-block', severity: 'high', summary: 'A blocking issue requires a decision.', blocking: true }] : [], commandsRun: [`mock-${stageName}`], knownRisks: [], nextChecks: [], evidence: [{ description: 'mock provider evidence' }], reportDetails: stageName === '08-finish' ? { summary: 'Mock finish supplied structured report details.', verification: [{ name: 'Mock structured check', exitCode: 0, result: 'Recorded mock verification fixture.' }], acceptanceCriteria: [{ criterion: 'Mock reporting fixture is propagated', status: 'met', evidence: ['Mock handoff payload reached the report.'] }] } : undefined });
     },
   });
 }

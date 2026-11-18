@@ -2,15 +2,45 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { execFileSync } from 'node:child_process';
 import test from 'node:test';
 
-const cli = new URL('./piw.mjs', import.meta.url).pathname;
+const cli = fileURLToPath(new URL('./piw.mjs', import.meta.url));
 
 test('piw exposes help and version', () => {
   const help = execFileSync(process.execPath, [cli, '--help'], { encoding: 'utf8' });
   assert.match(help, /piw task create/);
-  assert.equal(execFileSync(process.execPath, [cli, 'version'], { encoding: 'utf8' }).trim(), '0.5.13');
+  assert.equal(execFileSync(process.execPath, [cli, 'version'], { encoding: 'utf8' }).trim(), JSON.parse(fs.readFileSync(new URL('../package.json', import.meta.url), 'utf8')).version);
+});
+
+test('archive updater refuses Git checkouts before reading release metadata', t => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'piw source update-'));
+  t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
+  fs.mkdirSync(path.join(dir, 'scripts'));
+  fs.copyFileSync(new URL('./update.mjs', import.meta.url), path.join(dir, 'scripts/update.mjs'));
+  // A .git file also represents a worktree, not just a .git directory.
+  fs.writeFileSync(path.join(dir, '.git'), 'gitdir: /not-used');
+  const bin = path.join(dir, 'bin'), marker = path.join(dir, 'network-attempted');
+  fs.mkdirSync(bin);
+  fs.writeFileSync(path.join(bin, 'curl'), '#!/bin/sh\nprintf attempted > "$PI_UPDATE_TEST_MARKER"\nexit 99\n', { mode: 0o755 });
+  const env = { ...process.env, HOME: dir, PI_WORKBENCH_HOME: dir, PATH: bin, PI_UPDATE_TEST_MARKER: marker };
+  assert.throws(() => execFileSync(process.execPath, [path.join(dir, 'scripts/update.mjs'), '--yes'], { env, encoding: 'utf8', stdio: 'pipe' }), error => {
+    assert.equal(error.status, 2);
+    assert.match(error.stderr, /Source checkout detected/);
+    return true;
+  });
+  assert.equal(fs.existsSync(marker), false, 'Guard tests must never contact a live updater or touch the real installation');
+});
+
+test('structural checks work from a source path containing spaces', t => {
+  const parent = fs.mkdtempSync(path.join(os.tmpdir(), 'piw source checks-'));
+  t.after(() => fs.rmSync(parent, { recursive: true, force: true }));
+  const source = path.resolve(fileURLToPath(new URL('..', import.meta.url)));
+  const copy = path.join(parent, 'workbench with spaces');
+  fs.cpSync(source, copy, { recursive: true, filter: file => !path.relative(source, file).split(path.sep).some(part => ['.git', 'node_modules'].includes(part)) });
+  const output = execFileSync(process.execPath, [path.join(copy, 'scripts/verify-workflows.mjs')], { encoding: 'utf8' });
+  assert.match(output, /Portable Pi workbench checks passed/);
 });
 
 test('piw run defaults to router/auto and passes Pi arguments through', () => {

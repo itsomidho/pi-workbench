@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "domain": "nextjs",
+  "gates": [
+    {
+      "id": "scope-and-approval",
+      "evidence": "Confirmed component, versions, project standards, safe environment, and explicit plan approval."
+    },
+    {
+      "id": "verification",
+      "evidence": "Use only the confirmed package manager and scripts in package.json for lint, typecheck, focused/full tests, browser checks, and build. Inspect the lockfile and packageManager field; do not mix lockfiles, install dependencies, or silently download tools. Builds/prerendering can fetch data or run code, so verify the environment and service fakes first."
+    },
+    {
+      "id": "server-security",
+      "evidence": "Authorize each Server Action, Route Handler, API route, and server-side data operation independently; page guards or middleware/proxy checks alone are not an authorization boundary. Validate untrusted input, scope data to the user/tenant, and prevent secrets from entering client bundles, rendered HTML, serialized props, or RSC payloads."
+    },
+    {
+      "id": "rendering-and-deployment",
+      "evidence": "Confirm the project's router and rendering mode before changing data fetching. Keep browser APIs and client hooks out of Server Components. Avoid serializing secrets or leaking per-user results through shared caches. Derive fetch/cache/revalidation semantics from the installed version and existing configuration, not remembered defaults. Record deployment/recovery requirements and unresolved risks without deploying."
+    }
+  ]
+}

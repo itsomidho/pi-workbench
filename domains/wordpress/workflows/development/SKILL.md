@@ -1,20 +1,22 @@
 ---
-name: development
+name: wordpress-development
 description: Orchestrate WordPress development in configured WordPress projects end to end, delegating to the domain-neutral roles (plan and implement → review → fix → browser QA → test → audit → commit/MR drafts) with a shared task file as live context. Use when the user runs /development, or asks to build, implement or fix a feature "end to end" / "with the full workflow" / "orchestrated". Also "/development resume" to continue a task, "/development list" to see tasks, and "/development cleanup" to delete finished ones.
 argument-hint: <task description> | resume [slug] | list | cleanup
 ---
 
 # WordPress development orchestrator
 
-Arguments: `$ARGUMENTS`.
+Arguments: the task description or approved Think brief supplied by the coordinator.
 
-You coordinate; the agents do the work. Don't implement, review or test yourself: delegate to the agent for that role. You own the task file and every decision point with the user. All rules come from `$PI_STANDARDS_DIR/`; don't add or override any here.
+When run by the managed engine, follow only the requested stage. The engine owns progression and bounded fix loops. These role instructions do not themselves create isolated agents; disclose current-session execution if delegation is unavailable.
+
+You coordinate the domain workflow. Delegate stages only when actual delegation is available; otherwise use the approved current-session managed stages and disclose that they are not independent agents. You own the task file and every decision point with the user. Baseline rules live in `../../standards/` relative to this skill. Private project facts and policies live under `$PI_STANDARDS_DIR/wordpress/projects/` (default standards root `$HOME/.pi/standards`); don't invent or override them here.
 
 ## Task workspace (shared dynamic context)
 
 ```
-$PI_TASKS_DIR/<project>/<YYYY-MM-DD>-<slug>/
-  TASK.md            live context; only you edit it (template: $PI_CONFIG_DIR/domains/wordpress/workflows/development/TASK.template.md)
+$PI_TASKS_DIR/wordpress/<project>/<YYYY-MM-DD>-<slug>/
+  TASK.md            live context; only you edit it (template: ../../../../workflows/TASK.template.md relative to this skill)
   01-plan.md         each agent's full report, numbered in order
   02-implement.md
   03-review.md
@@ -27,14 +29,14 @@ $PI_TASKS_DIR/<project>/<YYYY-MM-DD>-<slug>/
 
 ## Modes
 
-- `list`: list task folders under `$PI_TASKS_DIR/` with each TASK.md's title, status and next step. Stop.
+- `list`: list task folders under `$PI_TASKS_DIR/wordpress/` with each TASK.md's title, status and next step. Stop.
 - `resume [slug]`: open that task (or the most recent non-`done` one for the current repo), read TASK.md, check the repo is on the recorded branch and `git status` matches "Files changed", tell the user where it stands, and continue from "Next step".
 - `cleanup`: remove finished task folders (see "Cleanup" below). Stop.
 - Otherwise: a new task, starting at step 0.
 
 ## Step 0. Set up
 
-1. Identify the project with the startup procedure in `$PI_STANDARDS_DIR/README.md` and read its project file. No match → say so and ask how to proceed.
+1. Identify the project with the startup procedure in `../../standards/README.md` relative to this skill and read its project file. No match → say so and ask how to proceed.
 2. Read the project file's **Git conventions**: base branch, branch naming, commit style. They drive steps 1 and 7.
 3. `git fetch origin` (read-only), then `git status` and `git branch --show-current` in the repo. If the tree is dirty with changes unrelated to this task, ask whether to continue on top of them, stash, or stop. Never stash or discard on your own.
    If the current branch is neither the project's base branch nor a branch for this task, ask which to start from.
@@ -86,14 +88,14 @@ Skip QA for changes with no runtime effect (docs, CI-only, pure refactor already
 
 ## Step 5. Test (full path, when the change has logic worth locking in)
 
-Call `test-writer`. There's no first-party test suite yet: it will propose a setup and ask before creating one. Relay that question to the user, record the answer in Decisions, then call it again. If the user declines tests, record that and move on.
+Use the `test-writer` role with the project's actual test setup. Inspect configured suites and commands first. If no suitable suite exists, propose a minimal setup and obtain approval before creating one; record that decision. If the user declines tests, record that and move on.
 
 Failing tests → step 4 with `debugger`, counting toward the same round limit.
 
 ## Step 6. Audits (only when relevant; can run in parallel)
 
 - New or changed entry points (AJAX, REST, admin-post, forms, file uploads) → `security-auditor`, scoped to the changed entry points, not the whole repo.
-- Changed front-end output on public pages → `performance-auditor`, comparing the affected page types on the local site before/after (relative numbers only; local has no page cache). Absolute numbers need staging or production; offer that in the final report instead.
+- Changed front-end output on public pages → `performance-auditor`, comparing the affected page types on the local site before/after (relative comparisons; derive cache topology from this project's facts). Absolute numbers need staging or production; offer that in the final report instead.
 
 Their 🔴/🟡 findings go to "Open findings" and through one more fix round if needed.
 
@@ -115,13 +117,13 @@ Their 🔴/🟡 findings go to "Open findings" and through one more fix round if
    - deploy steps, phrased as what the deploy needs (asset build, Composer install, cache purge, ACF sync, server config). Production deploys run through a per-project script whose steps aren't known here, so don't present exact commands as the deploy procedure;
    - the task folder path.
 
-Then ask whether to commit (using `COMMIT.md`), push, and open the MR (using `MR.md`: `glab mr create --target-branch <base branch> --title … --description … --label "<label>" --assignee omid.hoseini`; quote labels with spaces, e.g. `"Hot Fix"`; always assign the MR to the user, @omid.hoseini). **Don't do any of these without a yes.** After an MR exists, record its number and URL in TASK.md's **MR** row, and suggest `/merge-request-review <N>` as a final pass.
+Then ask whether to commit (using `COMMIT.md`), push, and open the MR (using `MR.md`: `glab mr create --target-branch <base branch> --title … --description … --label "<label>" --assignee "<project-configured-assignee>"`; quote labels with spaces and obtain a missing assignee from the user rather than hardcoding an account). **Don't do any of these without a yes.** After an MR exists, record its number and URL in TASK.md's **MR** row, and suggest `/merge-request-review <N>` as a final pass.
 
 Keep the task folder until the MR is merged: review rounds may need `/development resume`. Mention `/development cleanup` for afterwards.
 
 ## Cleanup
 
-1. Collect every task folder under `$PI_TASKS_DIR/` and read each TASK.md's title, project, status, MR and Started date.
+1. Collect every task folder under `$PI_TASKS_DIR/wordpress/` and read each TASK.md's title, project, status, MR and Started date.
 2. Check each task's MR state from the project's local repo path: `glab mr view <N> --output json` with the MR number from TASK.md, or, when no MR is recorded (older tasks), `glab mr view <branch> --output json` with the branch from TASK.md. Read `state`: `opened` / `merged` / `closed`; no MR found means "no MR". Use the GitLab host and repo from the project file. If glab fails, show the state as "unknown"; don't guess.
 3. Show one table, grouped:
    - **Safe to delete:** MR `merged` or `closed`.
@@ -142,13 +144,13 @@ Task folder: <abs path>
 2. Then read: <the specific earlier reports this step needs, e.g. 03-review.md>.
 3. Your job: <one precise instruction: plan-only / implement the plan / fix findings F1, F3 /
    review the diff against <base sha> / write tests for … / audit entry points …>.
-4. Follow your normal startup procedure ($PI_STANDARDS_DIR/README.md).
+4. Read the WordPress pack's standards/README.md; resolve its path from the supplied workflow entry, not the application working directory.
 5. Write your full report to <task folder>/<NN-step>.md.
    Do not edit TASK.md. Outside the task folder, change only what your role allows.
 6. Reply with a summary of at most 15 lines: outcome, files touched, findings by severity
    (one line each, with IDs), questions for the user, and the report path.
 ```
 
-**Models.** Use each agent's own model, except the plan step (opus, see step 1). Don't upgrade other steps on your own. If the Log shows `developer` repeatedly hitting the fix-round limit, mention it in the final report so the user can reconsider its model.
+**Models.** Use each agent's own model, except an explicitly configured planning profile (see step 1); physical models remain unconfirmed unless response metadata verifies them. Don't upgrade other steps on your own. If the Log shows `developer` repeatedly hitting the fix-round limit, mention it in the final report so the user can reconsider its model.
 
 Only pass the reports a step needs (e.g. the fixer gets the review, not the plan history). Run independent agents (the two auditors) in parallel; everything else is sequential.

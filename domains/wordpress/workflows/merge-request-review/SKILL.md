@@ -2,18 +2,18 @@
 name: merge-request-review
 description: Review a GitLab merge request in the WordPress projects (the configured repositories, or any repo with a file in $PI_STANDARDS_DIR/wordpress/projects/) across PHP, WordPress, Sage/Acorn, Gutenberg, JS, CSS and infra changes, and post the findings as inline MR comments via glab. Use when the user gives an MR number (e.g. "review MR 171", "/merge-request-review 171", "!171") or asks to review a GitLab merge request in these repos.
 argument-hint: <mr-number> [project-name] [--dry-run]
-allowed-tools: Bash(glab mr view:*), Bash(git remote get-url:*), Bash(glab mr diff:*), Bash(glab mr note list:*), Bash(git fetch:*), Bash(git show:*), Bash(git log:*), Bash(python3 $PI_CONFIG_DIR/domains/wordpress/workflows/merge-request-review/scripts/diff_lines.py:*), Read, Grep, Glob
+allowed-tools: Bash(glab mr view:*), Bash(git remote get-url:*), Bash(glab mr diff:*), Bash(glab mr note list:*), Bash(git fetch:*), Bash(git show:*), Bash(git log:*), Bash(python3 $MR_HELPER:*), Read, Grep, Glob
 ---
 
 # WordPress MR review (GitLab)
 
-Arguments: `$ARGUMENTS`. The first number is the MR IID. An optional project name selects the repository. `--dry-run` means report only and post nothing.
+Arguments: the request supplied with this skill. The first number is the MR IID. An optional project name selects the repository. `--dry-run` means report only and post nothing.
 
 Never modify the working tree: no `git checkout`, `git pull`, or `glab mr checkout`. Read MR code with `git show origin/<source_branch>:<path>`.
 
 ## 1. Resolve the project
 
-Each project has a file in `$PI_STANDARDS_DIR/wordpress/projects/`: local path, GitLab path, first-party scope, text domains, PHP floors, and project facts. Project names are local configuration and are not bundled here.
+Use the bundled startup procedure in `../../standards/README.md` relative to this skill. The local standards root defaults to `$HOME/.pi/standards` when PI_STANDARDS_DIR is unset. Each project has a private file in `$PI_STANDARDS_DIR/wordpress/projects/`: local path, GitLab path, first-party scope, text domains, PHP floors, and project facts. Project names are local configuration and are not bundled here.
 
 - If the user named the repo, use it. Otherwise match the current directory's `git remote get-url origin` against the GitLab paths in those files.
 - If neither gives a repo, ask which one.
@@ -23,11 +23,13 @@ To add a repo, copy a project file and fill it in. No other change is needed.
 
 ## 2. Gather the MR
 
+Resolve `MR_HELPER` to the absolute path of `scripts/diff_lines.py` beside this SKILL.md, using the skill's actual loaded location. Do not resolve it from the application repository or assume PI_CONFIG_DIR is set. Then run the commands from the project's local repository path.
+
 ```bash
 glab mr view <N> --output json      # title, description, source/target branch, author, diff_refs, labels
 glab mr diff <N> --raw > "$SCRATCH/mr-<N>.diff"
-python3 $PI_CONFIG_DIR/domains/wordpress/workflows/merge-request-review/scripts/diff_lines.py --files < "$SCRATCH/mr-<N>.diff"
-python3 $PI_CONFIG_DIR/domains/wordpress/workflows/merge-request-review/scripts/diff_lines.py < "$SCRATCH/mr-<N>.diff"   # commentable lines
+python3 "$MR_HELPER" --files < "$SCRATCH/mr-<N>.diff"
+python3 "$MR_HELPER" < "$SCRATCH/mr-<N>.diff"   # commentable lines
 glab mr note list <N>               # existing discussions: don't repeat what's already said
 git fetch origin <source_branch> <target_branch>
 ```
@@ -48,7 +50,7 @@ You may *mention* a third-party plugin bump or add/remove in the summary, for ex
 
 ## 4. Load the checklists
 
-Read `$PI_STANDARDS_DIR/checklists/INDEX.md`. Match the changed first-party files (from `diff_lines.py --files`) against its routing table and read **only** the checklists that match. `security.md` is always loaded.
+Read `../../standards/checklists/INDEX.md` relative to this skill directory. Match the changed first-party files (from `diff_lines.py --files`) against its routing table and read **only** the checklists that match. `security.md` is always loaded.
 
 The checklists are the review rules. The project file's "Project facts" override generic checklist advice where they conflict (for example, the Sage version or PHP floor of a specific component).
 
@@ -85,7 +87,7 @@ Comment body format (Markdown). Use GitLab suggestion blocks only when the fix i
 ```
 ````
 
-Comments are posted from the user's own GitLab account (Omid Hoseini, @omid.hoseini) and should read as their review. Do not add any bot, AI, or "Claude" signature or footer to inline comments or the summary. Write in a direct, human reviewer voice.
+Comments are posted from the authenticated GitLab account after the user's approval; verify the intended account rather than assuming a bundled person's identity. Do not add any bot, AI, or "Claude" signature or footer to inline comments or the summary. Write in a direct, human reviewer voice.
 
 Post every inline comment as a draft. Pass the body via a heredoc variable so quotes and backticks survive:
 

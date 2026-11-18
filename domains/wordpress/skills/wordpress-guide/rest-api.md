@@ -30,7 +30,7 @@ add_action('rest_api_init', function () {
                     'sanitize_callback' => 'absint',
                     'validate_callback' => fn ($v) => $v > 0 && $v <= 100,
                 ],
-                'search' => ['sanitize_callback' => 'sanitize_text_field'],
+                'search' => ['type' => 'string', 'validate_callback' => 'rest_validate_request_arg', 'sanitize_callback' => 'sanitize_text_field'],
             ],
         ],
         [
@@ -38,7 +38,7 @@ add_action('rest_api_init', function () {
             'callback'            => 'acme_create_book',
             'permission_callback' => fn () => current_user_can('edit_posts'),
             'args' => [
-                'title' => ['required' => true, 'type' => 'string', 'sanitize_callback' => 'sanitize_text_field'],
+                'title' => ['required' => true, 'type' => 'string', 'validate_callback' => 'rest_validate_request_arg', 'sanitize_callback' => 'sanitize_text_field'],
             ],
         ],
     ]);
@@ -61,7 +61,7 @@ add_action('rest_api_init', function () {
 - `WP_REST_Server::DELETABLE` = DELETE
 - `WP_REST_Server::ALLMETHODS` = all
 
-**`permission_callback` is mandatory.** Without it the endpoint refuses to register (error in WP 5.5+). `__return_true` is correct for genuinely public data — be intentional.
+**`permission_callback` is mandatory.** Omitting it emits a doing_it_wrong warning in WP 5.5+, but does not refuse registration: the route can remain publicly accessible. Never rely on the warning as access control. `__return_true` is correct for genuinely public data — be intentional.
 
 ---
 
@@ -153,17 +153,19 @@ Users generate an Application Password under their profile. Send as `Authorizati
         'type'              => 'integer',
         'minimum'           => 1,
         'maximum'           => 100,
+        'validate_callback' => 'rest_validate_request_arg',
         'sanitize_callback' => 'absint',
     ],
     'status' => [
         'type'              => 'string',
+        'validate_callback' => 'rest_validate_request_arg',
         'enum'              => ['draft', 'publish', 'pending'],
         'sanitize_callback' => 'sanitize_key',
     ],
 ],
 ```
 
-Validation runs before the callback — bad input returns a 400 automatically.
+Validation runs before the endpoint callback when validation callbacks are configured. With a custom sanitize_callback, schema validation can be bypassed unless you also provide validate_callback (for example rest_validate_request_arg). Do not assume type/minimum/maximum/enum alone will reject invalid input in that case. The default rest_parse_request_arg sanitizer validates schema only when it has not been replaced.
 
 ---
 
@@ -229,7 +231,7 @@ register_post_meta('book', 'isbn', [
 
 ## Common REST gotchas
 
-- **No `permission_callback`** → endpoint open to everyone (WP 5.5+ logs a doing_it_wrong warning, won't register).
+- **No `permission_callback`** → endpoint can be open to everyone. WP 5.5+ logs a doing_it_wrong warning but still registers the route; add an explicit permission callback.
 - **Pretty permalinks required** — REST routes need rewrite rules. If REST returns 404s, visit Permalinks settings to flush.
 - **CORS** — WordPress doesn't allow cross-origin REST by default. Add headers via `rest_pre_serve_request` if consuming from a different domain.
 - **Block Editor breaks without REST** — CPT `show_in_rest: false`, unregistered meta, or missing `'supports' => ['custom-fields']` all silently break the editor.

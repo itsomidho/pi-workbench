@@ -1,3 +1,6 @@
+import { domainStageContext } from "../scripts/domains.mjs";
+import { requestRouterRole } from "../scripts/router-role.mjs";
+import { assertApprovedPlan } from "../scripts/workflow-approval.mjs";
 import crypto from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
@@ -6,17 +9,14 @@ import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 function tasksRoot() {
   return process.env.PI_TASKS_DIR ?? path.join(process.env.HOME ?? ".", ".pi/tasks");
 }
-function standardsRootFor(domain = process.env.PI_DOMAIN ?? "wordpress") {
+function standardsRootFor(domain: string) {
   return path.join(process.env.PI_STANDARDS_DIR ?? path.join(process.env.HOME ?? ".", ".pi/standards"), domain);
 }
 function safePart(value: string) {
   return /^[a-z][a-z0-9-]*$/.test(value);
 }
 function workflowStages(domain: string) {
-  const configRoot = process.env.PI_CONFIG_DIR ?? path.resolve(new URL("..", import.meta.url).pathname);
-  const file = path.join(configRoot, "domains", domain, "workflows", "development", "workflow.json");
-  if (!fs.existsSync(file)) throw new Error(`No development workflow for domain: ${domain}`);
-  return JSON.parse(fs.readFileSync(file, "utf8")).stages as Record<string, { status: string; role: string; report: string }>;
+  return domainStageContext(domain, "plan").stages as Record<string, { status: string; role: string; report: string }>;
 }
 function taskDir(identifier: string) {
   const parts = identifier.split("/");
@@ -154,10 +154,10 @@ export default function (pi: ExtensionAPI) {
       if (!target) { ctx.ui.notify("Usage: /task-start <domain>/<project>/<date-slug> <plan|implement|review|fix|qa|test|audit|finish>", "error"); return; }
       try {
         const result = transition(fs.readFileSync(target.file, "utf8"), stages[stage].status);
+        requestRouterRole(pi, domainStageContext(domain, stage).routerRole);
         fs.writeFileSync(target.file, result.text);
         const report = path.join(target.dir, `${stages[stage].report}.md`);
         if (!fs.existsSync(report)) fs.writeFileSync(report, `# ${stages[stage].report}\n\n## Objective\n\n## Findings\n\n## Evidence\n\n## Result\n\n## Next step\n`);
-        process.env.PI_ROUTER_ROLE = stages[stage].role;
         ctx.ui.notify(`Started ${stage}: ${result.current} -> ${stages[stage].status}; router role: ${stages[stage].role}`, "info");
       } catch (error) {
         ctx.ui.notify(error instanceof Error ? error.message : String(error), "error");
@@ -188,10 +188,16 @@ export default function (pi: ExtensionAPI) {
       const text = fs.readFileSync(target.file, "utf8");
       const current = text.match(/^\| Status \| (.+) \|$/m)?.[1];
       if (current !== spec.status) { ctx.ui.notify(`Stage ${stage} requires status ${spec.status}; current status is ${current ?? "unknown"}.`, "error"); return; }
-      process.env.PI_ROUTER_ROLE = spec.role;
+      if (stage !== "plan") {
+        try { assertApprovedPlan(target.dir); }
+        catch (error) { ctx.ui.notify(error instanceof Error ? error.message : String(error), "error"); return; }
+      }
+      try { requestRouterRole(pi, domainStageContext(domain!, stage).routerRole); }
+      catch (error) { ctx.ui.notify(error instanceof Error ? error.message : String(error), "error"); return; }
       const context = stageContext(target.dir, spec.report);
       const prompt = `${spec.instruction}\n\nTask folder: ${target.dir}\nLive context: ${target.file}\nStage report: ${path.join(target.dir, `${spec.report}.md`)}\nStage handoff brief: ${path.join(target.dir, "artifacts", "briefs", `${spec.report}.json`)}\nShared task context (JSON):\n${JSON.stringify(context.shared)}\nDirect previous-stage brief (JSON):\n${JSON.stringify(context.previousBrief)}\n\nUse only the shared context, the direct previous brief, and relevant evidence. Do not read unrelated reports or the full conversation unless required to verify evidence. You own only this stage. Read the live context first, follow the portable workflow, and report evidence. Do not commit, push, post, or perform out-of-scope work.`;
-      pi.sendUserMessage(prompt, { triggerTurn: true, expandPromptTemplates: false });
+      const domainContext = domainStageContext(domain!, stage);
+      pi.sendUserMessage(`${prompt}\n\n${domainContext.text}`, { triggerTurn: true, expandPromptTemplates: false });
       ctx.ui.notify(`Started model run for ${stage} using role ${spec.role}.`, "info");
     },
   });

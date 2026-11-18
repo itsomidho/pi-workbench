@@ -32,7 +32,8 @@ if ! command -v pi >/dev/null; then
   pi_package="${PI_PACKAGE:-@earendil-works/pi-coding-agent}"
   npm install -g "$pi_package"
 fi
-agent_dir="${PI_AGENT_DIR:-$HOME/.pi/agent}"
+agent_dir="${PI_CODING_AGENT_DIR:-${PI_AGENT_DIR:-$HOME/.pi/agent}}"
+export PI_CODING_AGENT_DIR="$agent_dir"
 standards_dir="${PI_STANDARDS_DIR:-$HOME/.pi/standards}"
 tasks_dir="${PI_TASKS_DIR:-$HOME/.pi/tasks}"
 mkdir -p "$agent_dir" "$standards_dir" "$tasks_dir"

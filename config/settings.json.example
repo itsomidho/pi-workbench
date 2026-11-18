@@ -3,9 +3,7 @@
   "theme": "system",
   "hideThinkingBlock": false,
   "enableSkillCommands": true,
-  "skills": [
-    "+skills/think/SKILL.md",
-    "+domains/wordpress/workflows/development/SKILL.md",
-    "+domains/wordpress/skills/wordpress-guide/SKILL.md"
+  "packages": [
+    "~/.pi-workbench"
   ]
 }

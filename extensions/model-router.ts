@@ -1,4 +1,5 @@
 import type { ExtensionAPI, ExtensionContext, ModelRoute, ModelRouteRequest } from "@earendil-works/pi-coding-agent";
+import { routerRoleEvent } from "../scripts/router-role.mjs";
 
 type Requirements = {
   reasoning: boolean;
@@ -49,10 +50,17 @@ function requirements(request: RouterRequest): Requirements {
   return { ...profile, reasoning: profile.reasoning || inferred };
 }
 
+// Native SDK transports encode tool calls. This is protocol compatibility,
+// not an independent benchmark of the physical model's tool-use quality.
+const TOOL_APIS = new Set([
+  "openai-completions", "mistral-conversations", "openai-responses",
+  "azure-openai-responses", "openai-codex-responses", "anthropic-messages",
+  "bedrock-converse-stream", "google-generative-ai", "google-vertex", "pi-messages",
+]);
 function satisfies(model: any, wanted: Requirements): boolean {
-  if (model.contextWindow && model.contextWindow < wanted.contextWindowMin) return false;
+  if (!Number.isFinite(model.contextWindow) || model.contextWindow < wanted.contextWindowMin) return false;
   if (wanted.reasoning && model.reasoning !== true) return false;
-  if (wanted.tools && model.api && !["openai-responses", "openai-completions", "anthropic-messages", "google-generative-ai"].includes(model.api)) return false;
+  if (wanted.tools && !TOOL_APIS.has(model.api)) return false;
   if (wanted.vision && !model.input?.includes("image")) return false;
   return true;
 }
@@ -112,6 +120,14 @@ function route(request: RouterRequest, ctx: ExtensionContext): ModelRoute<Router
 }
 
 export default function (pi: ExtensionAPI) {
+  pi.events.on(routerRoleEvent, (data) => {
+    const request = data as { role?: string; effectiveRole?: string | null; error?: string | null };
+    if (!request || typeof request !== "object" || typeof request.role !== "string") return;
+    try {
+      setRouterRole(request.role);
+      request.effectiveRole = getRouterRole();
+    } catch (error) { request.error = error instanceof Error ? error.message : String(error); }
+  });
   pi.registerCommand("router-role", {
     description: `Set the routing role (${Object.keys(ROLE_REQUIREMENTS).join(", ")})`,
     handler: async (args, ctx) => {

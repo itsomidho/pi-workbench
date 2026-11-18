@@ -1,6 +1,6 @@
 {
   "name": "pi-workbench",
-  "version": "0.5.13",
+  "version": "0.5.14-dev.0",
   "private": true,
   "description": "Portable, vendor-neutral Pi configuration, workflows, standards, and adapter tooling.",
   "type": "module",
@@ -12,17 +12,15 @@
   "pi": {
     "extensions": [
       "./extensions/model-router.ts",
+      "./extensions/domain-discovery.ts",
       "./extensions/task-workflow.ts",
       "./extensions/workflow-orchestrator.ts"
     ],
     "skills": [
-      "./skills",
-      "./domains/wordpress/skills",
-      "./domains/wordpress/workflows"
+      "./skills"
     ],
     "prompts": [
-      "./workflows/*.md",
-      "./domains/wordpress/workflows/*.md"
+      "./workflows/*.md"
     ]
   },
   "bin": {

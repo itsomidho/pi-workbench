@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "domain": "nuxt",
+  "gates": [
+    {
+      "id": "scope-and-approval",
+      "evidence": "Confirmed component, versions, project standards, safe environment, and explicit plan approval."
+    },
+    {
+      "id": "verification",
+      "evidence": "Use only the confirmed package manager and scripts in package.json for lint, typecheck, focused/full tests, browser checks, and build. Inspect the lockfile and packageManager field; do not mix lockfiles, install dependencies, or silently download tools. Builds/prerendering can fetch data or run code, so verify the environment and service fakes first."
+    },
+    {
+      "id": "server-security",
+      "evidence": "Authorize each Nitro/H3 handler or other server entry point and scope data to the user/tenant; client navigation middleware and hidden UI are not server security boundaries. Validate input and protect session mutations. Keep secrets out of public runtimeConfig, client bundles, rendered HTML, and serialized Nuxt payloads."
+    },
+    {
+      "id": "rendering-and-deployment",
+      "evidence": "Confirm Nuxt major version and the actual app/srcDir layout before choosing APIs. Keep per-request state isolated, avoid browser-only APIs during SSR, and use stable async-data keys without sharing personalized cached payloads. Verify ssr, routeRules, Nitro caching, prerendering, and deployment preset behavior for this version. Record deployment/recovery requirements and unresolved risks without deploying."
+    }
+  ]
+}

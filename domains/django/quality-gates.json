@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "domain": "django",
+  "gates": [
+    {
+      "id": "scope-and-approval",
+      "evidence": "Confirmed repository, local standards, explicit plan approval, and recorded environment."
+    },
+    {
+      "id": "verification",
+      "evidence": "Use the project's recorded Python/virtualenv/container commands. Typical candidates, not automatic requirements: the configured pytest or `python manage.py test`, Ruff/mypy checks, `python manage.py check`, and `python manage.py makemigrations --check --dry-run` against confirmed test settings."
+    },
+    {
+      "id": "security",
+      "evidence": "Check CSRF for session/browser mutations, authentication and object-level permissions, queryset tenant scoping, forms/serializer allowlists, ORM parameter binding, autoescaping, upload limits, secure settings, and secret/log redaction."
+    },
+    {
+      "id": "deployment",
+      "evidence": "Migration/worker/cache deployment impact, recovery plan, and unresolved risks recorded; no production operations automatically executed."
+    }
+  ]
+}

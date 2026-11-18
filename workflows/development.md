@@ -1,18 +1,16 @@
-# WordPress development workflow
+# Development workflow for Pi
 
-Use the `development` skill as the canonical high-quality workflow. This file defines Pi-specific runtime requirements; the detailed rules remain in `domains/wordpress/workflows/development/SKILL.md` and `domains/wordpress/standards/`.
+Request: $ARGUMENTS
 
-## Required sequence
+This is the generic development entry point, not a WordPress workflow. No domain is the default.
 
-1. Identify the domain and repository, then match it to a local project file under `$PI_STANDARDS_DIR/<domain>/projects/`.
-2. Read the domain project file, its `checklists/INDEX.md`, and only routed checklists plus `security.md`.
-3. If no project file matches, stop and ask the user to run `node scripts/init-project.mjs <domain> <project-name>`; never borrow another project's facts.
-4. Create or update a task folder under `$PI_TASKS_DIR/<domain>/<project>/<date>-<slug>/`.
-5. For full work, produce a plan and wait for user approval before implementation.
-6. Implement, review, fix within the allowed rounds, run browser QA when visible/interactive, add tests when logic warrants them, and run relevant security/performance audits.
-7. Keep `TASK.md` owned by the coordinator; agents write numbered reports.
-8. At finish, propose standards updates but apply them only after approval. Do not commit, push, or open an MR without explicit approval.
+1. Discover installed packs and inspect the affected repository/component with `piw domain detect <repository-or-component-directory>` (read-only). If `piw` is unavailable, run `node "$PI_CONFIG_DIR/scripts/domain-cli.mjs" detect <directory>` using the actual Workbench installation path when PI_CONFIG_DIR is unset.
+2. Use repository evidence and matching local project configuration to confirm a domain. If the result is ambiguous, unconfirmed, or unsupported, ask for the component/domain or propose a main-session plan. Do not select WordPress merely because it is installed. A user-requested stack in a new/empty project requires explicit confirmation rather than invented repository evidence.
+3. Select the confirmed domain's `routes.development` entry from discovery output. Read that exact file and the relevant local project standards under `$PI_STANDARDS_DIR/<domain>/projects/` (default standards root: `$HOME/.pi/standards`). Do not substitute a same-named skill from another domain. Missing project configuration: ask the user before initializing it with `piw init <domain> <project>`.
+4. Present a scoped plan and verification criteria. Wait for explicit approval before implementation or task creation. If an approved Think brief was supplied, reuse it and do not ask the user to repeat settled decisions; ask again only for changed scope or unresolved questions.
+5. For `managed-development-v1`, initialize the task, save the approved plan, move it to awaiting-approval, and approve it with `piw task approve <domain>/<project>/<date-slug>`. Invoke `/task-go <domain>/<project>/<date-slug>` only through an actual Pi command capability; otherwise give the user that command. Do not execute Pi slash commands in the shell.
+6. For `main-session`, follow the selected workflow within the approved plan using available tools. Unsupported engines must not start a managed task.
+7. Domain roles are instruction profiles. The current managed engine runs stages in the current session; it does not launch independent agents or enforce read-only roles. Disclose this and use actual delegation only when it is available and appropriate.
+8. Produce the task report and return its paths. Managed runs generate FINAL.md plus reports/final.json and reports/final.html automatically on completion, blockage, or stop. For approved main-session execution, use `piw report init <slug> <title>`, record the actual approved plan and evidence, maintain artifacts/report-details.json, and finish with `piw report generate <task-directory> <completed|blocked|stopped>`; see docs/reports.md. Never infer passed checks or deployment from workflow completion. Never commit, push, publish, delete, or open an MR without explicit approval.
 
-## Model routing
-
-Use `PI_ROUTER_ROLE=planner`, `debugger`, `code-reviewer`, `qa`, or the matching role through `/router-role`. Never hardcode a provider or model ID.
+`/skill:wordpress-development` directly loads the WordPress playbook. `/development` selects a domain first. Future domain skills must have unique names (prefer `<domain>-<workflow>`).

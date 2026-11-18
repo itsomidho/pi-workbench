@@ -1,5 +1,27 @@
 # Changelog
 
+## 0.5.14-dev.0 - Unreleased
+
+- Generate one evidence-backed task report as JSON, Markdown, and self-contained dark HTML with responsive navigation, accessible states, and light printing.
+- Produce reports for completed, blocked, stopped, aborted, and missing-handoff managed runs; add report-only main-session CLI support.
+- Scope report evidence to the current run, preserve unknown verification/acceptance/delivery states, escape output, and redact common secrets.
+- Discover and validate domain packs dynamically; route Think and development using repository evidence and explicit manifest entries.
+- Load selected domain role instructions in managed stages and preserve explicit task identifiers for execution.
+- Add domain CLI commands, multi-domain tests, and domain authoring documentation.
+- Ship baseline Laravel, Django, Next.js, and Nuxt development packs with guides, standards, role profiles, and safe stack detection.
+- Detect Next.js/Nuxt by package dependencies, not React/Vue or configuration filenames; cover both packs in real Pi command-discovery and mock-workflow tests.
+- Check plan approval on start, continuation, and resume; pause aborted runs and later-stage blocking findings.
+- Correct handoff selection for skipped fix stages and re-review after fixes.
+- Document a linked source-checkout installation and prevent archive updates from replacing a linked development checkout.
+- Confirm workflow role updates through the registered router's event bus rather than isolated module imports.
+- Treat corrupt handoffs as bounded failures and omit malformed optional report records with warnings.
+- Correct WordPress pack reference paths and separate bundled baseline rules from private project facts.
+- Handle source/install paths containing spaces in structural validation and the source-update guard.
+- Restore the application, global CLI, and Pi registration after failed updates; retain recovery archives if rollback fails, and guard Git update targets as well as linked commands.
+- Honor custom Pi agent directories in the installer and add real isolated npm/Pi lifecycle coverage.
+- Recognize native SDK tool transports (including Codex, Azure, Bedrock, Vertex, Mistral, and Pi messages); fail closed on missing or insufficient context metadata.
+- Correct WordPress REST guidance: missing permission callbacks do not prevent registration, and custom sanitizers need explicit schema validation callbacks.
+
 ## 0.5.13 - 2026-11-16
 
 - Align think skill and workflow approval gates, advisor boundaries, and coordinator-only fallback disclosure.

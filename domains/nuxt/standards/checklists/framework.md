@@ -1,0 +1,9 @@
+# Nuxt implementation and verification checklist
+
+- Confirm the installed Nuxt/Vue versions and layout, SSR-safe composables, hydration and async-data keys, Nitro/H3 server authorization, runtimeConfig exposure, and rendering/cache rules.
+- Confirm Nuxt major version and the actual app/srcDir layout before choosing APIs. Keep per-request state isolated, avoid browser-only APIs during SSR, and use stable async-data keys without sharing personalized cached payloads. Verify ssr, routeRules, Nitro caching, prerendering, and deployment preset behavior for this version.
+- Authorize each Nitro/H3 handler or other server entry point and scope data to the user/tenant; client navigation middleware and hidden UI are not server security boundaries. Validate input and protect session mutations. Keep secrets out of public runtimeConfig, client bundles, rendered HTML, and serialized Nuxt payloads.
+- Preserve route/API contracts, metadata/SEO, accessibility, localization, error/loading behavior, and deployment compatibility.
+- Cover SSR/direct reload and client navigation, hydration, loading/error/not-found states, authorized and denied server requests, validation failures, tenant/user isolation, cache/payload isolation, accessibility, and responsive behavior where affected. Use the project's configured test stack and fake external services. Inspection is not proof of a passing browser or application test.
+- Use only the confirmed package manager and scripts in package.json for lint, typecheck, focused/full tests, browser checks, and build. Inspect the lockfile and packageManager field; do not mix lockfiles, install dependencies, or silently download tools. Builds/prerendering can fetch data or run code, so verify the environment and service fakes first.
+- Framework-specific commands and optional test tools vary by version. Missing tooling is a limitation to report, not permission to auto-install or fabricate a pass.

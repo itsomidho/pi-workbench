@@ -3,18 +3,21 @@
 The single source of project facts and code rules for every WordPress agent (`developer`, `code-reviewer`, `debugger`, `test-writer`, `qa`, `performance-auditor`, `security-auditor`, `migrator`) and the `merge-request-review` skill. Change a rule here, never inside an agent or skill.
 
 ```
-projects/<name>.md      one file per repo: paths, scope, stack, server, text domains, PHP floor/runtime
+$PI_STANDARDS_DIR/wordpress/projects/<name>.md   private facts per repository
 checklists/INDEX.md     routing table (which checklist applies to which files) + severity rules
 checklists/*.md         the rules, one domain per file
 ```
 
+`PI_STANDARDS_DIR` is the local standards root (default `$HOME/.pi/standards`), not this bundled directory. Resolve `checklists/` below relative to this README. Real project facts are not bundled with Workbench; local project-specific policies may extend these baseline rules.
+
 ## Startup procedure (every agent, before any work)
 
-1. **Identify the project.** Match `git remote get-url origin` (or the current path) against the GitLab paths and local paths in `projects/*.md`. Read the matching file in full. If none matches, say so and fall back to detecting the stack yourself; never borrow another project's facts.
+1. **Identify the project.** Match `git remote get-url origin` (or the current path) against the GitLab paths and local paths in `$PI_STANDARDS_DIR/wordpress/projects/*.md`. Read the matching file in full. If none matches, read-only stack detection is allowed, but stop before execution and ask for project setup with `piw init wordpress <project>`; never borrow another project's facts.
 2. **Respect scope.** Work only in the first-party paths the project file lists. Never edit vendored, generated or third-party code (`vendor/`, `node_modules/`, build output, third-party plugins).
 3. **Load the checklists** for the files you'll read or touch: read `checklists/INDEX.md`, then only the checklists its routing table selects. `security.md` always applies.
 4. **Project facts win.** Where a project file and a generic checklist disagree (Sage version, PHP floor/runtime, cache setup), follow the project file.
-5. **Unknown means unknown.** If a project file marks something as unknown (e.g. the object cache), write and judge code so it's correct under every option, and don't state a guess as fact.
+5. **Environment safety.** Test commands, cache purges, cron/job execution, migrations, and browser scenarios are examples, not authorization for production or real external effects. Confirm the local/test environment and obtain separate approval for database changes, remote writes, or real service calls. Derive test-suite and cache topology from this project's facts; do not inherit another project's assumptions.
+6. **Unknown means unknown.** If a project file marks something as unknown (e.g. the object cache), write and judge code so it's correct under every option, and don't state a guess as fact.
 
 ## How each role uses the checklists
 
@@ -31,11 +34,11 @@ checklists/*.md         the rules, one domain per file
 
 ## Figma designs (added 2026-10-21)
 
-The wp-* agents have no Figma MCP access. When a task comes from a Figma design, the orchestrator (main session) pulls the values with `get_design_context` / `get_screenshot` and writes them to a spec file in the task folder (e.g. `01b-figma-spec.md`: sizes, spacing, colours, typography, screen positions, assets) before planning or implementing; it also downloads any new assets for the developer. Agents treat that spec as the visual source of truth. Figma frames are authored LTR: the spec should state on-screen positions, since the first DOM child renders on the right in RTL markup.
+Check the actual tools available to the executing session; a role profile does not establish Figma access or permission boundaries. When delegated execution lacks Figma tools, the orchestrator (main session), if it has access, pulls the values with `get_design_context` / `get_screenshot` and writes them to a spec file in the task folder (e.g. `01b-figma-spec.md`: sizes, spacing, colours, typography, screen positions, assets) before planning or implementing; it also downloads any new assets for the developer. Agents treat that spec as the visual source of truth. Figma frames are authored LTR: the spec should state on-screen positions, since the first DOM child renders on the right in RTL markup.
 
 ## Task workspace (when called by the `development` orchestrator)
 
-If your prompt names a **task folder** (`$PI_TASKS_DIR/<project>/<date>-<slug>/`):
+If your prompt names a **task folder** (`$PI_TASKS_DIR/wordpress/<project>/<date>-<slug>/`):
 - Read its `TASK.md` before anything else, then only the earlier reports the prompt lists. TASK.md holds the brief, the approved plan, the user's decisions, files changed and open findings. Its decisions bind you like project facts.
 - Write your full report to the file path given in the prompt. Writing that report is allowed even for read-only roles (reviewer, auditors); it's not a code change.
 - Never edit `TASK.md`; the orchestrator owns it. Put questions for the user in your reply.
@@ -45,7 +48,7 @@ Without a task folder, work as usual and report in your reply.
 
 ## Adding to the standards
 
-- New repo → copy a file in `projects/`, fill it in. Nothing else changes.
+- New repo → run `piw init wordpress <project>`, then fill the private project file under `$PI_STANDARDS_DIR/wordpress/projects/`. Do not copy another project's facts or add real project files to the application bundle.
 - New rule → add it to the right checklist. If it's a new domain, create a checklist and add a row to the routing table in `INDEX.md`.
 - New fact learned while working (server change, new plugin, version bump) → update the project file and note the date.
 - `/development` proposes such updates at the end of each task (its retrospective step); they're applied only after the user approves.

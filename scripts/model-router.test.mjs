@@ -1,5 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import { EventEmitter } from 'node:events';
+import { requestRouterRole } from './router-role.mjs';
 
 let instance = 0;
 async function harness(t, initialRole) {
@@ -15,8 +17,11 @@ async function harness(t, initialRole) {
   });
   const module = await import(`../extensions/model-router.ts?test=${instance++}`);
   const commands = new Map();
+  const bus = new EventEmitter();
+  const events = { emit: (name, data) => bus.emit(name, data), on: (name, handler) => { bus.on(name, handler); return () => bus.off(name, handler); } };
   let virtual;
   module.default({
+    events,
     registerCommand: (name, command) => commands.set(name, command),
     registerVirtualModel: model => { virtual = model; },
   });
@@ -31,7 +36,7 @@ async function harness(t, initialRole) {
     ui: { notify: (text, level) => notifications.push({ text, level }) },
   };
   return {
-    ...module, commands, notifications, ctx, general, reasoning,
+    ...module, commands, notifications, ctx, general, reasoning, events,
     setBranch: entries => { branch = entries; },
     route: (extra = {}) => virtual.route({ reason: 'user', messages: [], thinkingLevel: 'medium', ...extra }, ctx),
     status: async () => {
@@ -52,11 +57,22 @@ test('environment initializes role; command changes both selection and status', 
   assert.match((await h.status()).text, /Role: developer; base requirements:.*"reasoning":false/);
 });
 
-test('programmatic role changes use the same effective profile', async t => {
+test('local role setter changes use the same effective profile', async t => {
   const h = await harness(t, 'developer');
   h.setRouterRole('think');
   assert.equal((await h.route()).model.id, 'reasoning');
   assert.match((await h.status()).text, /Role: think;/);
+});
+
+test('event-bus requests update the registered router and require acknowledgement', async t => {
+  const h = await harness(t, 'think');
+  assert.equal(requestRouterRole({ events: h.events }, 'developer'), 'developer');
+  assert.equal(h.getRouterRole(), 'developer');
+  assert.equal((await h.route()).model.id, 'general');
+  assert.match((await h.status()).text, /Role: developer;/);
+  assert.throws(() => requestRouterRole({ events: h.events }, 'missing'), /Unknown router role/);
+  assert.equal(h.getRouterRole(), 'developer');
+  assert.throws(() => requestRouterRole({ events: { emit() {} } }, 'developer'), /unavailable or role update unconfirmed/);
 });
 
 test('unset environment defaults and invalid commands preserve current role', async t => {
@@ -108,6 +124,20 @@ test('role change takes effect on next user request, retaining continuation stic
   const continuation = await h.route({ reason: 'continuation', previous: { model: h.general } });
   assert.equal(continuation.model.id, 'general');
   assert.equal((await h.route()).model.id, 'reasoning');
+});
+
+test('native SDK tool protocols are eligible while unknown protocols and context sizes fail closed', async t => {
+  const h = await harness(t, 'think');
+  for (const api of ['openai-completions', 'mistral-conversations', 'openai-responses', 'azure-openai-responses', 'openai-codex-responses', 'anthropic-messages', 'bedrock-converse-stream', 'google-generative-ai', 'google-vertex', 'pi-messages']) {
+    h.ctx.modelRegistry.getAvailable = () => [{ ...h.reasoning, api }];
+    assert.equal((await h.route()).model.api, api);
+  }
+  h.ctx.modelRegistry.getAvailable = () => [{ ...h.reasoning, api: 'unknown-protocol' }];
+  await assert.rejects(h.route(), /No accessible model/);
+  for (const contextWindow of [undefined, 0, NaN, 99_999]) {
+    h.ctx.modelRegistry.getAvailable = () => [{ ...h.reasoning, contextWindow }];
+    await assert.rejects(h.route(), /No accessible model/);
+  }
 });
 
 test('explicit model override still respects role requirements', async t => {

@@ -1,0 +1,32 @@
+{
+  "schemaVersion": 1,
+  "id": "laravel",
+  "name": "Laravel",
+  "roles": "./roles",
+  "skills": "./skills",
+  "standards": "./standards",
+  "workflows": "./workflows",
+  "qualityGates": "./quality-gates.json",
+  "detection": {
+    "any": [
+      {
+        "all": [
+          {
+            "path": "artisan"
+          },
+          {
+            "path": "composer.json",
+            "jsonDependency": "laravel/framework"
+          }
+        ]
+      }
+    ]
+  },
+  "routes": {
+    "development": {
+      "entry": "./workflows/development/SKILL.md",
+      "engine": "managed-development-v1",
+      "stages": "./workflows/development/workflow.json"
+    }
+  }
+}

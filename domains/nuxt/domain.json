@@ -1,0 +1,29 @@
+{
+  "schemaVersion": 1,
+  "id": "nuxt",
+  "name": "Nuxt",
+  "roles": "./roles",
+  "skills": "./skills",
+  "standards": "./standards",
+  "workflows": "./workflows",
+  "qualityGates": "./quality-gates.json",
+  "detection": {
+    "any": [
+      {
+        "all": [
+          {
+            "path": "package.json",
+            "jsonDependency": "nuxt"
+          }
+        ]
+      }
+    ]
+  },
+  "routes": {
+    "development": {
+      "entry": "./workflows/development/SKILL.md",
+      "engine": "managed-development-v1",
+      "stages": "./workflows/development/workflow.json"
+    }
+  }
+}

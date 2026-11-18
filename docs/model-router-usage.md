@@ -34,7 +34,7 @@ PI_ROUTER_ROLE=code-reviewer piw run
 PI_ROUTER_ROLE=qa piw run
 ```
 
-`PI_ROUTER_ROLE` initializes the role when the extension loads. An explicit `/router-role <role>` command (or `setRouterRole()`) overrides that initial role for the current runtime; it does not rewrite the environment. Reloading starts from the environment again. Unknown roles fail explicitly rather than silently selecting the default.
+`PI_ROUTER_ROLE` initializes the role when the extension loads. An explicit `/router-role <role>` command overrides that initial role for the current runtime; it does not rewrite the environment. Reloading starts from the environment again. Unknown roles fail explicitly rather than silently selecting the default.
 
 Inside Pi:
 
@@ -46,6 +46,12 @@ Inside Pi:
 The role applies to the next user request using `router/auto`; it does not reroute an already running request or a directly selected physical model. Status distinguishes the effective role's base requirements, selected model, and the last physical response model on the current branch. That last response is historical evidence, not a prediction for the next request; prompt inference can add reasoning to the base profile.
 
 Roles are capability hints, not provider/model aliases or tool permissions. In particular, `think-advisor` does not create a delegated agent, and `tools: false` does not disable tools. Delegate only through a verified read-only or tool-less execution boundary; otherwise disclose coordinator-only analysis. Set the advisor role in the delegated runtime, not in the coordinator. The router considers tools, reasoning, vision, and context window. A model may be visible in the catalog but rejected for a role if its metadata does not satisfy the role.
+
+## Requests from other extensions
+
+Use `requestRouterRole(pi, role)` from `scripts/router-role.mjs`. It emits a session event-bus request to the registered model-router and requires an acknowledgement of the effective role. Do not import and mutate the router module's state from another extension: Pi isolates extension imports, so that may change a separate instance while the registered router keeps its old role.
+
+Managed stages fail clearly when the model-router extension is disabled or cannot confirm the update. Confirmation establishes the requested capability profile only; it does not prove physical dispatch, select router/auto for a directly selected physical model, or enforce tool permissions. The real Pi integration tests verify that `/router-status` observes the orchestrator's role update across registered extensions.
 
 ## Restrict selection
 
