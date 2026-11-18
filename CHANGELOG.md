@@ -1,6 +1,6 @@
 # Changelog
 
-## 0.5.14-dev.0 - Unreleased
+## 0.5.14 - 2026-11-18
 
 - Generate one evidence-backed task report as JSON, Markdown, and self-contained dark HTML with responsive navigation, accessible states, and light printing.
 - Produce reports for completed, blocked, stopped, aborted, and missing-handoff managed runs; add report-only main-session CLI support.

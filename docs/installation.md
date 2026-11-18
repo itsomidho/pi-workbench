@@ -15,7 +15,7 @@ A release archive installs the application without repository metadata:
 ```fish
 set -gx PI_WORKBENCH_HOME "$HOME/.pi-workbench"
 mkdir -p "$PI_WORKBENCH_HOME"
-curl -L https://github.com/itsomidho/pi-workbench/archive/refs/tags/v0.5.13.tar.gz \
+curl -L https://github.com/itsomidho/pi-workbench/archive/refs/tags/v0.5.14.tar.gz \
   | tar -xz --strip-components=1 -C "$PI_WORKBENCH_HOME"
 cd "$PI_WORKBENCH_HOME"
 ./scripts/install.sh
