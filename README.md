@@ -14,7 +14,7 @@ Pi remains the runtime. Workbench does not bundle a model vendor, copy credentia
 | See provider models | `piw adapter models <name>` |
 | Run Pi with saved provider credentials | `piw run ...` |
 | Let Workbench choose a capable model | `piw run` |
-| Configure model stage allowlists | `piw model-capabilities init` |
+| Configure model stage allowlists | `piw model-capabilities <init|list|validate>` |
 | Start a task | `/think`, approval, then `go` inside Pi |
 
 ## Requirements
@@ -108,7 +108,15 @@ PI_ROUTER_ROLE=debugger piw run
 PI_ROUTER_PROVIDER=openai-codex piw run
 ```
 
-Configure optional role-specific model allowlists with `piw model-capabilities init`; the default policy path is `$HOME/.pi/model-capabilities.json`. See [docs/model-router-usage.md](docs/model-router-usage.md).
+Configure optional role-specific model allowlists with the `piw model-capabilities` commands:
+
+```bash
+piw model-capabilities init [path]
+piw model-capabilities list [path]
+piw model-capabilities validate [path]
+```
+
+`init` creates the interactive policy, `list` displays configured models and stage allowlists, and `validate` checks the policy. The default path is `$HOME/.pi/model-capabilities.json`; `PI_MODEL_CAPABILITIES_FILE` or an explicit path can override it. See [docs/model-router-usage.md](docs/model-router-usage.md).
 
 ## Provider adapters
 

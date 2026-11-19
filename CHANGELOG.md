@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+## 0.5.17 - 2026-11-20
+
+- Document the complete `piw model-capabilities init|list|validate` command family and default policy path in the README and model-routing guide.
+
 ## 0.5.16 - 2026-11-20
 
 - Start the exact approved managed task when the user says plain `go` after a Think handoff; revalidate task identity, status, and approval hash instead of selecting a global newest task.
