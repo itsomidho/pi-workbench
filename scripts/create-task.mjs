@@ -42,6 +42,7 @@ const sharedContext = {
   project,
   title,
   goal: title,
+  complexity: 'moderate',
   acceptanceCriteria: [],
   scope: { allowed: [], forbidden: [] },
   standards: [],

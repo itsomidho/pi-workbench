@@ -38,6 +38,22 @@ function taskDir(identifier: string) {
   const dir = path.resolve(root, ...parts);
   return dir.startsWith(`${root}${path.sep}`) ? dir : null;
 }
+function taskIdentifierFromAssistant(ctx: ExtensionContext) {
+  const entries = [...ctx.sessionManager.getBranch()].reverse();
+  const latest = entries.find((entry) => entry.type === "message" && entry.message.role === "assistant");
+  if (!latest || latest.type !== "message") return null;
+  const content = Array.isArray(latest.message.content)
+    ? latest.message.content.filter((block: any) => block.type === "text").map((block: any) => block.text).join("\n")
+    : typeof latest.message.content === "string" ? latest.message.content : "";
+  const match = content.match(/(?:\/task-go|task identifier(?: is|:)?)[\s`]*([a-z][a-z0-9-]*\/[a-z][a-z0-9-]*\/[0-9]{4}-[0-9]{2}-[0-9]{2}-[a-z][a-z0-9-]*)/i);
+  return match?.[1] ?? null;
+}
+function taskComplexity(dir: string): "simple" | "moderate" | "complex" {
+  try {
+    const value = JSON.parse(fs.readFileSync(path.join(dir, "artifacts", "shared-context.json"), "utf8")).complexity;
+    return ["simple", "moderate", "complex"].includes(value) ? value : "moderate";
+  } catch { return "moderate"; }
+}
 function readRun(): RunState | null { return fs.existsSync(runFile()) ? JSON.parse(fs.readFileSync(runFile(), "utf8")) : null; }
 
 function writeRun(state: RunState) {
@@ -121,7 +137,8 @@ function launchWith(pi: ExtensionAPI) {
       assertApprovedPlan(state.taskDir);
       const previous = previousBrief(state);
       const domain = domainStageContext(state.identifier.split("/")[0], state.stage);
-      requestRouterRole(pi, domain.routerRole);
+      const complexity = taskComplexity(state.taskDir);
+      requestRouterRole(pi, domain.routerRole, complexity);
       state.runId ??= randomUUID();
       state.stopRequested = false;
       state.reportStatus = "in-progress";
@@ -129,7 +146,7 @@ function launchWith(pi: ExtensionAPI) {
       state.attemptId = randomUUID();
       writeRun(state);
       ctx.ui.notify(`Workflow stage: ${state.stage} (${domain.role}; current session)`, "info");
-      await send(`${promptFor(state, previous)}\n\n${domain.text}`);
+      await send(`${promptFor(state, previous)}\n\nTask complexity: ${complexity}\n${domain.text}`);
     } catch (error) {
       finalizeRun(state, ctx, "blocked", `Workflow could not continue: ${error instanceof Error ? error.message : String(error)}`);
     }
@@ -195,21 +212,44 @@ export default function (pi: ExtensionAPI) {
     },
   });
 
+  const startTask = async (identifier: string, ctx: ExtensionContext) => {
+    const dir = taskDir(identifier);
+    if (!dir || !fs.existsSync(statusFile(dir))) throw new Error(`Unknown approved task: ${identifier}`);
+    if (status(dir) !== "implementing") throw new Error(`Task must be approved and implementing; current status is ${status(dir) ?? "unknown"}.`);
+    assertApprovedPlan(dir);
+    const existing = readRun();
+    if (existing?.active) throw new Error(`Another workflow is active: ${existing.identifier}`);
+    const state: RunState = { taskDir: dir, identifier, runId: randomUUID(), stage: "implement", fixRounds: 0, maxFixRounds: 2, handoffRetries: 0, active: true };
+    writeRun(state);
+    await launch(state, ctx, (prompt) => pi.sendUserMessage(prompt, { triggerTurn: true }));
+  };
+
   pi.registerCommand("task-go", {
     description: "Run the approved task through the development workflow",
     handler: async (args, ctx) => {
       const identifier = args.trim();
-      const dir = taskDir(identifier);
-      if (!dir || !fs.existsSync(statusFile(dir))) { ctx.ui.notify("Usage: /task-go <domain>/<project>/<date-slug>", "error"); return; }
-      if (status(dir) !== "implementing") { ctx.ui.notify(`Task must be approved and implementing; current status is ${status(dir) ?? "unknown"}.`, "error"); return; }
-      try { assertApprovedPlan(dir); }
-      catch (error) { ctx.ui.notify(error instanceof Error ? error.message : String(error), "error"); return; }
-      const existing = readRun();
-      if (existing?.active) { ctx.ui.notify(`Another workflow is active: ${existing.identifier}`, "error"); return; }
-      const state: RunState = { taskDir: dir, identifier, runId: randomUUID(), stage: "implement", fixRounds: 0, maxFixRounds: 2, handoffRetries: 0, active: true };
-      writeRun(state);
-      await launch(state, ctx, (prompt) => pi.sendUserMessage(prompt, { triggerTurn: true }));
+      if (!identifier) { ctx.ui.notify("Usage: /task-go <domain>/<project>/<date-slug>", "error"); return; }
+      try { await startTask(identifier, ctx); }
+      catch (error) { ctx.ui.notify(error instanceof Error ? error.message : String(error), "error"); }
     },
+  });
+
+  pi.on("input", async (event, ctx) => {
+    if (event.text.trim().toLowerCase() !== "go") return { action: "continue" };
+    const existing = readRun();
+    if (existing?.active) {
+      ctx.ui.notify(`A workflow is already active: ${existing.identifier}`, "error");
+      return { action: "handled" };
+    }
+    const identifier = taskIdentifierFromAssistant(ctx);
+    if (!identifier) return { action: "continue" };
+    try {
+      await startTask(identifier, ctx);
+      ctx.ui.notify(`Approved task started: ${identifier}`, "info");
+    } catch (error) {
+      ctx.ui.notify(error instanceof Error ? error.message : String(error), "error");
+    }
+    return { action: "handled" };
   });
 
   pi.registerCommand("task-go-stop", {
@@ -224,9 +264,8 @@ export default function (pi: ExtensionAPI) {
     },
   });
 
-  // Plain "go" belongs to the coordinator's approval conversation. It must not
-  // select a globally newest task from another project/domain. Managed execution
-  // starts only through /task-go with an explicit approved task identifier.
+  // Plain "go" starts only the exact approved task identifier present in the
+  // current session's assistant handoff; it never selects a global newest task.
 
   pi.on("tool_call", async (event) => {
     const state = readRun();

@@ -33,6 +33,9 @@ Usage:
   piw adapter models <provider>
   piw adapter list
   piw adapter remove <provider>
+  piw model-capabilities init [path]
+  piw model-capabilities list [path]
+  piw model-capabilities validate [path]
   piw check
   piw doctor
   piw update [--check|--yes]
@@ -90,6 +93,9 @@ if (group === 'init' || group === 'init-from-think') {
 if (group === 'adapter') {
   run(process.execPath, [path.join(root, 'scripts', 'adapter.mjs'), action, ...args], { cwd: safeCwd() });
 }
+if (group === 'model-capabilities') {
+  run(process.execPath, [path.join(root, 'scripts', 'model-capabilities.mjs'), action, ...args], { cwd: safeCwd() });
+}
 if (group === 'run') {
   const piArgs = process.argv.slice(3);
   const separator = piArgs.indexOf('--');
@@ -126,6 +132,12 @@ switch (`${group}:${action ?? ''}`) {
   case 'adapter:create':
     run(process.execPath, ['scripts/create-adapter.mjs', ...args]);
     break;
+  case 'model-capabilities:init':
+  case 'model-capabilities:list':
+  case 'model-capabilities:validate':
+    run(process.execPath, ['scripts/model-capabilities.mjs', action, ...args], { cwd: safeCwd() });
+    break;
+  case 'check':
   case 'check:':
     run('npm', ['run', 'check']);
     break;

@@ -14,7 +14,8 @@ Pi remains the runtime. Workbench does not bundle a model vendor, copy credentia
 | See provider models | `piw adapter models <name>` |
 | Run Pi with saved provider credentials | `piw run ...` |
 | Let Workbench choose a capable model | `piw run` |
-| Start a task | `/think`, approval, then `/task-go ...` inside Pi |
+| Configure model stage allowlists | `piw model-capabilities init` |
+| Start a task | `/think`, approval, then `go` inside Pi |
 
 ## Requirements
 
@@ -86,7 +87,7 @@ piw run
 Use a specific provider and model:
 
 ```fish
-piw run --provider tabdl --model cx/gpt-6.1-sol
+piw run --provider openai-codex --model <model-id>
 ```
 
 List models from configured adapters:
@@ -95,7 +96,7 @@ List models from configured adapters:
 piw run --list-models
 ```
 
-Direct `pi` does not load Workbench provider files. Use `piw run` unless you intentionally provide `TABDL_*` or other provider variables yourself.
+Direct `pi` does not load Workbench provider files. Use `piw run` unless you intentionally provide provider variables yourself.
 
 ## Model routing
 
@@ -104,10 +105,10 @@ Direct `pi` does not load Workbench provider files. Use `piw run` unless you int
 ```fish
 PI_ROUTER_TRACE=1 piw run
 PI_ROUTER_ROLE=debugger piw run
-PI_ROUTER_PROVIDER=tabdl piw run
+PI_ROUTER_PROVIDER=openai-codex piw run
 ```
 
-See [docs/model-router-usage.md](docs/model-router-usage.md).
+Configure optional role-specific model allowlists with `piw model-capabilities init`; the default policy path is `$HOME/.pi/model-capabilities.json`. See [docs/model-router-usage.md](docs/model-router-usage.md).
 
 ## Provider adapters
 

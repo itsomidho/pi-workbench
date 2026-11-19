@@ -28,6 +28,7 @@ for (const { domain, fixLoop = false } of cases) test(`Pi RPC runs ${domain} man
   if (fixLoop) env.PI_MOCK_FIX_LOOP = '1';
   else delete env.PI_MOCK_FIX_LOOP;
   env.PI_ROUTER_ROLE = 'think';
+  env.PI_MOCK_APPROVED_TASK = '';
   execFileSync(process.execPath, ['scripts/init-project.mjs', domain, 'sample-site'], { cwd: root, env });
   execFileSync(process.execPath, ['scripts/create-task.mjs', domain, 'sample-site', 'runtime-flow', 'Runtime flow'], { cwd: root, env });
   const taskBase = path.join(dir, `tasks/${domain}/sample-site`);
@@ -38,12 +39,12 @@ for (const { domain, fixLoop = false } of cases) test(`Pi RPC runs ${domain} man
   fs.writeFileSync(taskFile, fs.readFileSync(taskFile, 'utf8').replace('Not approved yet.', '1. Run the implementation.\n2. Verify the result.'));
   execFileSync(process.execPath, ['scripts/task-transition.mjs', identifier, 'awaiting-approval'], { cwd: root, env });
   execFileSync(process.execPath, ['scripts/task-approve.mjs', identifier], { cwd: root, env });
+  env.PI_MOCK_APPROVED_TASK = identifier;
   const child = spawn('pi', ['--mode', 'rpc', '-ne', '-e', './scripts/mock-pi-extension.mjs', '-e', './extensions/model-router.ts', '-e', './extensions/workflow-orchestrator.ts', '--provider', 'mock-local', '--model', 'mock-model', '--no-session'], { cwd: root, env, stdio: ['pipe', 'pipe', 'pipe'] });
   child.stderr.on('data', () => {});
-  // Plain approval must not start an unrelated globally newest task.
-  await new Promise((resolve, reject) => {
+  const waitForAgentEnd = () => new Promise((resolve, reject) => {
     let buffer = '';
-    const timer = setTimeout(() => { child.kill('SIGKILL'); reject(new Error('Plain go did not settle')); }, 10000);
+    const timer = setTimeout(() => { child.kill('SIGKILL'); reject(new Error('Mock Pi turn did not settle')); }, 10000);
     const listener = data => {
       buffer += data;
       let newline;
@@ -57,11 +58,12 @@ for (const { domain, fixLoop = false } of cases) test(`Pi RPC runs ${domain} man
       }
     };
     child.stdout.on('data', listener);
-    child.stdin.write(`${JSON.stringify({ id: 'approval', type: 'prompt', message: 'go' })}\n`);
   });
-  assert.equal(fs.existsSync(path.join(env.PI_TASKS_DIR, 'orchestration.json')), false);
-  child.stdout.on('data', () => {});
-  child.stdin.write(`${JSON.stringify({ id: 'runtime', type: 'prompt', message: `/task-go ${identifier}` })}\n`);
+  const firstGoTurn = waitForAgentEnd();
+  child.stdin.write(`${JSON.stringify({ id: 'approval-before-handoff', type: 'prompt', message: 'go' })}\n`);
+  await firstGoTurn;
+  assert.equal(fs.existsSync(path.join(env.PI_TASKS_DIR, 'orchestration.json')), false, 'Plain go without a current handoff must not select a task globally');
+  child.stdin.write(`${JSON.stringify({ id: 'approval', type: 'prompt', message: 'go' })}\n`);
 
   const deadline = Date.now() + 20000;
   while (!fs.existsSync(path.join(taskDir, 'FINAL.md')) && Date.now() < deadline) await new Promise(resolve => setTimeout(resolve, 100));

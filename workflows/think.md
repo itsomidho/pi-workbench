@@ -20,7 +20,7 @@ Use this workflow before non-trivial changes or decisions. The coordinator owns 
 4. Ask the verified read-only advisor for facts, assumptions, options, risks, and one recommendation; otherwise disclose coordinator-only analysis.
 5. Present the recommendation and wait for `go`.
 6. Write the decision and plan into the local think note.
-7. Route to the confirmed domain manifest’s workflow entry only after approval. Record domain, evidence, route entry, engine, and execution limitations in the note. Use only supported managed engines; a pack directory or role name does not create executable agent support.
+7. Route to the confirmed domain manifest’s workflow entry only after approval. For a managed route, include the exact approved task identifier and a `simple`, `moderate`, or `complex` complexity row in the assistant handoff. The user's plain `go` starts only that linked task after the runtime revalidates its status and approval hash; it never selects a global newest task. Record domain, evidence, route entry, engine, and execution limitations in the note. Use only supported managed engines; a pack directory or role name does not create executable agent support.
 8. Record requested and confirmed router roles and the physical `provider/model` from response metadata in the handoff. Mark unverified values unknown; selected virtual models do not establish physical dispatch.
 
 A missing advisor delegation tool or unverified execution boundary is a limitation: report “Advisor unavailable; coordinator-only analysis”. Do not claim an advisor ran when the coordinator performed the analysis. Use only tools available in this session, and route unsupported domains to the approved main-session plan rather than inventing a managed workflow.

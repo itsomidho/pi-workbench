@@ -42,6 +42,7 @@ export default function (pi) {
           ? response(model, context, 'TOOLLESS_PROBE_FINISHED')
           : response(model, context, 'Probe disabled write', { path: process.env.PI_MOCK_TOOLLESS_PROBE, content: 'This must never be written.' }, 'write');
       }
+      if (process.env.PI_MOCK_APPROVED_TASK && !text.includes('Task directory:')) return response(model, context, `Plan approved. Start the exact task with /task-go ${process.env.PI_MOCK_APPROVED_TASK}, then say go.`);
       if (!text.includes('Task directory:')) return response(model, context, 'mock response');
       if (process.env.PI_MOCK_EXPECT_DOMAIN) {
         const latest = context.messages.filter(message => message.role === 'user').at(-1);

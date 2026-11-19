@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+## 0.5.16 - 2026-11-20
+
+- Start the exact approved managed task when the user says plain `go` after a Think handoff; revalidate task identity, status, and approval hash instead of selecting a global newest task.
+- Route stages using planning/coding/debugging/review/QA/testing/security capability profiles and persisted simple/moderate/complex task complexity; support optional exact model capability/tier policies.
+- Add interactive `piw model-capabilities` initialization, validation, listing, full stage allowlists, secure default storage, and vendor-neutral examples.
+
 ## 0.5.15 - 2026-11-20
 
 - Resolve local project standards from explicit canonical/home-relative repository paths and inject the effective standards root and unique match into Think/development; keep ambiguous/unsafe scans unconfirmed.

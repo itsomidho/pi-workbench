@@ -1,11 +1,14 @@
 import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
 import test from 'node:test';
 import { EventEmitter } from 'node:events';
 import { requestRouterRole } from './router-role.mjs';
 
 let instance = 0;
 async function harness(t, initialRole) {
-  const keys = ['PI_ROUTER_ROLE', 'PI_ROUTER_PROVIDER', 'PI_ROUTER_MODEL', 'PI_ROUTER_TRACE'];
+  const keys = ['PI_ROUTER_ROLE', 'PI_ROUTER_PROVIDER', 'PI_ROUTER_MODEL', 'PI_ROUTER_TRACE', 'PI_ROUTER_COMPLEXITY', 'PI_MODEL_CAPABILITIES_FILE'];
   const original = Object.fromEntries(keys.map(key => [key, process.env[key]]));
   for (const key of keys) delete process.env[key];
   if (initialRole !== undefined) process.env.PI_ROUTER_ROLE = initialRole;
@@ -172,6 +175,32 @@ test('provider-only overrides can fall back, while pinned failed models fail exp
   assert.equal((await h.route({ reason: 'retry', state: first.state, failed: { model: first.model } })).model.id, 'backup');
   process.env.PI_ROUTER_MODEL = 'reasoning';
   await assert.rejects(h.route({ reason: 'retry', failed: { model: h.reasoning } }), /Requested router override is unavailable/);
+});
+
+test('complexity and declared work capability select a suitable stage model', async t => {
+  const h = await harness(t, 'developer');
+  const coding = { ...h.reasoning, id: 'coding-expert', workbenchRouting: { capabilities: ['coding'], tier: 'expert' } };
+  h.ctx.modelRegistry.getAvailable = () => [h.general, coding];
+  const request = { reason: 'user', messages: [], thinkingLevel: 'low' };
+  requestRouterRole({ events: h.events }, 'developer', 'complex');
+  const result = await h.route(request);
+  assert.equal(result.model.id, 'coding-expert');
+  assert.equal(result.thinkingLevel, 'high');
+  assert.equal(result.state.complexity, 'complex');
+});
+
+test('capability stage allowlists restrict candidates and fallback', async t => {
+  const h = await harness(t, 'developer');
+  const file = path.join(fs.mkdtempSync(path.join(os.tmpdir(), 'pi-model-policy-')), 'policy.json');
+  t.after(() => fs.rmSync(path.dirname(file), { recursive: true, force: true }));
+  fs.writeFileSync(file, JSON.stringify({ version: 1, defaults: { allowUnlistedModels: false }, models: {
+    'test/general': { enabled: true, capabilities: ['coding'], tier: 'standard' },
+    'test/reasoning': { enabled: true, capabilities: ['planning'], tier: 'expert' },
+  }, stages: { coding: ['test/general'] } }));
+  process.env.PI_MODEL_CAPABILITIES_FILE = file;
+  assert.equal((await h.route()).model.id, 'general');
+  h.ctx.modelRegistry.getAvailable = () => [h.reasoning];
+  await assert.rejects(h.route(), /No accessible model/);
 });
 
 test('explicit model override still respects role requirements', async t => {

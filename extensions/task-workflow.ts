@@ -34,6 +34,12 @@ function replaceField(text: string, field: string, value: string) {
   const pattern = new RegExp(`^(\\| ${field} \\| ).*?( \\|)$`, "m");
   return text.replace(pattern, `$1${value}$2`);
 }
+function taskComplexity(dir: string) {
+  try {
+    const value = JSON.parse(fs.readFileSync(path.join(dir, "artifacts", "shared-context.json"), "utf8")).complexity;
+    return ["simple", "moderate", "complex"].includes(value) ? value : "moderate";
+  } catch { return "moderate"; }
+}
 function stageContext(dir: string, currentStage?: string) {
   const artifacts = path.join(dir, "artifacts");
   const sharedFile = path.join(artifacts, "shared-context.json");
@@ -105,7 +111,7 @@ export default function (pi: ExtensionAPI) {
       fs.mkdirSync(path.join(dir, "artifacts", "briefs"), { recursive: true });
       const task = `# Task: ${titleParts.join(" ")}\n\n| Domain | ${domain} |\n| Project | ${project} |\n| Status | planning |\n| Started | ${date} |\n| Standards | ${projectFile} |\n\n## Brief\n${titleParts.join(" ")}\n\n## Decisions and constraints\n- Pending user decisions.\n\n## Plan\nNot approved yet.\n\n## Files changed\nNone.\n\n## Open findings\nNone.\n\n## Next step\nRead the project standards and prepare the plan.\n`;
       fs.writeFileSync(path.join(dir, "TASK.md"), task);
-      fs.writeFileSync(path.join(dir, "artifacts", "shared-context.json"), JSON.stringify({ schemaVersion: 1, taskId: `${domain}/${project}/${path.basename(dir)}`, domain, project, title: titleParts.join(" "), goal: titleParts.join(" "), acceptanceCriteria: [], scope: { allowed: [], forbidden: [] }, standards: [], planVersion: 0, approvedPlanHash: null, status: "planning", createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() }, null, 2) + "\n");
+      fs.writeFileSync(path.join(dir, "artifacts", "shared-context.json"), JSON.stringify({ schemaVersion: 1, taskId: `${domain}/${project}/${path.basename(dir)}`, domain, project, title: titleParts.join(" "), goal: titleParts.join(" "), complexity: "moderate", acceptanceCriteria: [], scope: { allowed: [], forbidden: [] }, standards: [], planVersion: 0, approvedPlanHash: null, status: "planning", createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() }, null, 2) + "\n");
       ctx.ui.notify(`Created task: ${dir}`, "info");
     },
   });
@@ -154,7 +160,7 @@ export default function (pi: ExtensionAPI) {
       if (!target) { ctx.ui.notify("Usage: /task-start <domain>/<project>/<date-slug> <plan|implement|review|fix|qa|test|audit|finish>", "error"); return; }
       try {
         const result = transition(fs.readFileSync(target.file, "utf8"), stages[stage].status);
-        requestRouterRole(pi, domainStageContext(domain, stage).routerRole);
+        requestRouterRole(pi, domainStageContext(domain, stage).routerRole, taskComplexity(target.dir));
         fs.writeFileSync(target.file, result.text);
         const report = path.join(target.dir, `${stages[stage].report}.md`);
         if (!fs.existsSync(report)) fs.writeFileSync(report, `# ${stages[stage].report}\n\n## Objective\n\n## Findings\n\n## Evidence\n\n## Result\n\n## Next step\n`);
@@ -192,7 +198,7 @@ export default function (pi: ExtensionAPI) {
         try { assertApprovedPlan(target.dir); }
         catch (error) { ctx.ui.notify(error instanceof Error ? error.message : String(error), "error"); return; }
       }
-      try { requestRouterRole(pi, domainStageContext(domain!, stage).routerRole); }
+      try { requestRouterRole(pi, domainStageContext(domain!, stage).routerRole, taskComplexity(target.dir)); }
       catch (error) { ctx.ui.notify(error instanceof Error ? error.message : String(error), "error"); return; }
       const context = stageContext(target.dir, spec.report);
       const prompt = `${spec.instruction}\n\nTask folder: ${target.dir}\nLive context: ${target.file}\nStage report: ${path.join(target.dir, `${spec.report}.md`)}\nStage handoff brief: ${path.join(target.dir, "artifacts", "briefs", `${spec.report}.json`)}\nShared task context (JSON):\n${JSON.stringify(context.shared)}\nDirect previous-stage brief (JSON):\n${JSON.stringify(context.previousBrief)}\n\nUse only the shared context, the direct previous brief, and relevant evidence. Do not read unrelated reports or the full conversation unless required to verify evidence. You own only this stage. Read the live context first, follow the portable workflow, and report evidence. Do not commit, push, post, or perform out-of-scope work.`;

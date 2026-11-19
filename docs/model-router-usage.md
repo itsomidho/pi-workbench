@@ -20,7 +20,7 @@ piw run --list-models
 Run one known model directly:
 
 ```fish
-piw run --provider tabdl --model cx/gpt-6.1-sol
+piw run --provider openai-codex --model <model-id>
 ```
 
 ## Role requirements
@@ -45,19 +45,53 @@ Inside Pi:
 
 The role applies to the next user request using `router/auto`; it does not reroute an already running request or a directly selected physical model. Status distinguishes the effective role's base requirements, selected model, and the last physical response model on the current branch. That last response is historical evidence, not a prediction for the next request; prompt inference can add reasoning to the base profile.
 
-Roles are capability hints, not provider/model aliases or tool permissions. In particular, `think-advisor` does not create a delegated agent, and `tools: false` does not disable tools. Delegate only through a verified read-only or tool-less execution boundary; otherwise disclose coordinator-only analysis. Set the advisor role in the delegated runtime, not in the coordinator. The router considers tools, reasoning, vision, and context window. A model may be visible in the catalog but rejected for a role if its metadata does not satisfy the role.
+Roles are capability hints, not provider/model aliases or tool permissions. In particular, `think-advisor` does not create a delegated agent, and `tools: false` does not disable tools. Delegate only through a verified read-only or tool-less execution boundary; otherwise disclose coordinator-only analysis. Set the advisor role in the delegated runtime, not in the coordinator. The router considers work capability, task complexity, tools, reasoning, vision, and context window. Set complexity explicitly when needed: `/router-role developer complex` or `PI_ROUTER_COMPLEXITY=complex`. For durable managed tasks, Think records `simple`, `moderate`, or `complex` in shared task context and each stage applies it automatically. A model may be visible in the catalog but rejected for a role if its metadata does not satisfy the role.
 
 ## Requests from other extensions
 
-Use `requestRouterRole(pi, role)` from `scripts/router-role.mjs`. It emits a session event-bus request to the registered model-router and requires an acknowledgement of the effective role. Do not import and mutate the router module's state from another extension: Pi isolates extension imports, so that may change a separate instance while the registered router keeps its old role.
+Use `requestRouterRole(pi, role, complexity)` from `scripts/router-role.mjs`. It emits a session event-bus request to the registered model-router and requires an acknowledgement of the effective role and complexity. Do not import and mutate the router module's state from another extension: Pi isolates extension imports, so that may change a separate instance while the registered router keeps its old role.
 
 Managed stages fail clearly when the model-router extension is disabled or cannot confirm the update. Confirmation establishes the requested capability profile only; it does not prove physical dispatch, select router/auto for a directly selected physical model, or enforce tool permissions. The real Pi integration tests verify that `/router-status` observes the orchestrator's role update across registered extensions.
+
+## Capability policy
+
+Create an interactive policy with `piw model-capabilities init`. The default path is `$HOME/.pi/model-capabilities.json`; use `PI_MODEL_CAPABILITIES_FILE` or an explicit path to select another file. The initializer never contacts providers or reads credentials. It accepts vendor-neutral provider/model IDs such as `provider-a/model-id` or `provider-b/model-id` and writes exact per-stage allowlists.
+
+```json
+{
+  "version": 1,
+  "defaults": { "allowUnlistedModels": false },
+  "models": {
+    "provider-a/model-id": {
+      "enabled": true,
+      "capabilities": ["planning", "coding", "testing"],
+      "tier": "strong"
+    },
+    "provider-b/model-id": {
+      "enabled": true,
+      "capabilities": ["planning", "debugging", "review", "qa", "security"],
+      "tier": "expert"
+    }
+  },
+  "stages": {
+    "planning": ["provider-a/model-id", "provider-b/model-id"],
+    "coding": ["provider-a/model-id"],
+    "debugging": ["provider-b/model-id"],
+    "review": ["provider-b/model-id"],
+    "qa": ["provider-b/model-id"],
+    "testing": ["provider-a/model-id"],
+    "security": ["provider-b/model-id"]
+  }
+}
+```
+
+When a stage allowlist exists, the router only considers those models. Otherwise, when candidates declare capabilities, it only considers models declaring the requested stage capability. The policy uses exact `provider/model` keys and is never fetched or modified by Workbench. Without it, the router still enforces Pi's reasoning/tools/vision/context metadata but cannot prove that a model is especially good at coding or planning.
 
 ## Restrict selection
 
 ```fish
-PI_ROUTER_PROVIDER=tabdl piw run
-PI_ROUTER_MODEL=cx/gpt-6.1-sol piw run
+PI_ROUTER_PROVIDER=openai-codex piw run
+PI_ROUTER_MODEL=<model-id> piw run
 PI_ROUTER_TRACE=1 piw run
 ```
 
@@ -67,7 +101,7 @@ Catalog entries can be inaccessible under the provider account's guardrails even
 
 ```fish
 # Example: route only within a model verified for this installation/account.
-piw run --models 'tabdl/cx/gpt-6.1-sol'
+piw run --models 'openai-codex/<approved-model>'
 # Multiple approved candidates allow fallback inside that scope.
 piw run --models 'provider/model-one,provider/model-two'
 ```
@@ -86,14 +120,14 @@ Workbench excludes every failed candidate in the current retry chain and resets 
 
    ```fish
    piw adapter health tabdl
-   piw adapter models tabdl
+   piw adapter models <provider>
    piw run --list-models
    ```
 
 3. Run one model directly:
 
    ```fish
-   piw run --provider tabdl --model <model-id>
+   piw run --provider <provider> --model <model-id>
    ```
 
 4. Retry `router/auto` with tracing:

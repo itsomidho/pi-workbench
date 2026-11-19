@@ -24,6 +24,8 @@ const required = [
   'scripts/mock-router-extension.mjs',
   'scripts/router-runtime-integration.test.mjs',
   'scripts/tool-less-runtime.test.mjs',
+  'scripts/model-capabilities.mjs',
+  'scripts/model-capabilities.test.mjs',
   'scripts/domains.mjs',
   'scripts/domain-cli.mjs',
   'extensions/domain-discovery.ts',
