@@ -127,7 +127,7 @@ Workbench excludes every failed candidate in the current retry chain and resets 
 2. Confirm the live catalog:
 
    ```fish
-   piw adapter health tabdl
+   piw adapter health <provider>
    piw adapter models <provider>
    piw run --list-models
    ```

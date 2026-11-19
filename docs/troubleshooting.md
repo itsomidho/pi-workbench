@@ -12,12 +12,12 @@ pi list
 piw run --list-models
 ```
 
-For Tabdl:
+For a configured provider adapter:
 
 ```fish
-piw adapter check "$HOME/.pi-adapters/pi-tabdl"
-piw adapter health tabdl
-piw adapter models tabdl
+piw adapter check "$HOME/.pi-adapters/pi-<provider>"
+piw adapter health <provider>
+piw adapter models <provider>
 ```
 
 ## `piw` is not found
@@ -42,22 +42,12 @@ If the command is still absent, rerun the Workbench installer from `$HOME/.pi-wo
 The adapter package is not registered or Pi has not been restarted:
 
 ```fish
-piw adapter check "$HOME/.pi-adapters/pi-tabdl"
-piw adapter install "$HOME/.pi-adapters/pi-tabdl"
+piw adapter check "$HOME/.pi-adapters/pi-<provider>"
+piw adapter install "$HOME/.pi-adapters/pi-<provider>"
 pi list
 ```
 
-`pi list` shows packages. `piw run --list-models` shows provider models.
-
-## `TABDL_* is not configured`
-
-Bare `pi` does not read `$HOME/.config/pi-workbench/providers/*.env`. Use:
-
-```fish
-piw run --provider tabdl --model <model-id>
-```
-
-Do not put API keys in `models.json`, project files, shell history, or screenshots.
+`pi list` shows packages. `piw run --list-models` shows provider models. Provider environment files are loaded by `piw run`; do not put API keys in `models.json`, project files, shell history, or screenshots.
 
 ## Model refresh fails
 
@@ -102,7 +92,7 @@ pi mcp list
 pi mcp login figma
 ```
 
-A Figma location/sanctions error is an external service availability issue, not a Tabdl provider error.
+A Figma location/sanctions error is an external service availability issue, not a provider adapter error.
 
 ## Terminal input or `/` is broken
 

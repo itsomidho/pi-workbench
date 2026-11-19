@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+## 0.5.18 - 2026-11-20
+
+- Remove the provider-specific Tabdl guide and generalize public adapter and troubleshooting documentation to vendor-neutral provider placeholders.
+
 ## 0.5.17 - 2026-11-20
 
 - Document the complete `piw model-capabilities init|list|validate` command family and default policy path in the README and model-routing guide.

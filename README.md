@@ -139,7 +139,7 @@ piw adapter models example
 
 Do not run `piw adapter create` again for an existing adapter. Use `check`, `install`, `configure`, `health`, or `models` instead.
 
-See [docs/adapters.md](docs/adapters.md) and [docs/tabdl.md](docs/tabdl.md).
+See [docs/adapters.md](docs/adapters.md).
 
 ## Domain discovery
 

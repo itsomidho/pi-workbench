@@ -5,7 +5,7 @@ A provider adapter is an independent Pi package that registers a provider, disco
 ## Rules
 
 - Adapter source defaults to `$HOME/.pi-adapters/pi-<name>`.
-- The public provider name is the adapter name, for example `tabdl`.
+- The public provider name is the adapter name, for example `provider-name`.
 - Credentials stay in `$HOME/.config/pi-workbench/providers/<name>.env`.
 - API keys are hidden during configuration and stored with mode `0600`.
 - Never commit keys, OAuth state, private certificates, or real provider responses.
