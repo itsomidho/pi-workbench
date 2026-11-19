@@ -43,14 +43,24 @@ test('structural checks work from a source path containing spaces', t => {
   assert.match(output, /Portable Pi workbench checks passed/);
 });
 
-test('piw run defaults to router/auto and passes Pi arguments through', () => {
+test('piw run defaults to router/auto and passes Pi arguments through', t => {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'piw-run-'));
+  t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
   const fakePi = path.join(dir, 'pi');
   fs.writeFileSync(fakePi, '#!/bin/sh\nprintf "cwd=%s\\n" "$PWD"\nprintf "%s\\n" "$@"\n', { mode: 0o755 });
-  const output = execFileSync(process.execPath, [cli, 'run', '--no-session'], {
-    encoding: 'utf8',
-    env: { ...process.env, PATH: `${dir}:${process.env.PATH}` },
-  });
-  assert.deepEqual(output.trim().split('\n'), [`cwd=${process.cwd()}`, '--model', 'router/auto', '--no-session']);
-  fs.rmSync(dir, { recursive: true, force: true });
+  const cases = [
+    { args: ['--no-session'], forwarded: ['--model', 'router/auto', '--no-session'] },
+    { args: ['Explain this fixture'], forwarded: ['--model', 'router/auto', 'Explain this fixture'] },
+    { args: ['@brief.md', '--no-session'], forwarded: ['--model', 'router/auto', '@brief.md', '--no-session'] },
+    { args: ['--', '--model', 'literal prompt'], forwarded: ['--model', 'router/auto', '--', '--model', 'literal prompt'] },
+    { args: ['--model', 'example/model', 'Explain this fixture'], forwarded: ['--model', 'example/model', 'Explain this fixture'] },
+    { args: ['--model=example/model', 'Explain this fixture'], forwarded: ['--model=example/model', 'Explain this fixture'] },
+  ];
+  for (const { args, forwarded } of cases) {
+    const output = execFileSync(process.execPath, [cli, 'run', ...args], {
+      encoding: 'utf8',
+      env: { ...process.env, PATH: `${dir}:${process.env.PATH}`, PI_WORKBENCH_CONFIG_DIR: path.join(dir, 'providers') },
+    });
+    assert.deepEqual(output.trim().split('\n'), [`cwd=${process.cwd()}`, ...forwarded], JSON.stringify(args));
+  }
 });

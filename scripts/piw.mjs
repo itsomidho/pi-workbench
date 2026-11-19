@@ -91,11 +91,13 @@ if (group === 'adapter') {
   run(process.execPath, [path.join(root, 'scripts', 'adapter.mjs'), action, ...args], { cwd: safeCwd() });
 }
 if (group === 'run') {
-  const piArgs = [action && action.startsWith('--') ? action : undefined, ...args].filter(Boolean);
+  const piArgs = process.argv.slice(3);
+  const separator = piArgs.indexOf('--');
+  const optionArgs = separator < 0 ? piArgs : piArgs.slice(0, separator);
   run('pi', [
-    ...(piArgs.some((value) => value === '--model' || value.startsWith('--model=')) ? [] : ['--model', 'router/auto']),
+    ...(optionArgs.some((value) => value === '--model' || value.startsWith('--model=')) ? [] : ['--model', 'router/auto']),
     ...piArgs,
-  ], { cwd: safeCwd(), env: loadProviderEnv(piArgs) });
+  ], { cwd: safeCwd(), env: loadProviderEnv(optionArgs) });
 }
 
 switch (`${group}:${action ?? ''}`) {

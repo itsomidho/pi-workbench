@@ -13,6 +13,22 @@ type Stage = "implement" | "review" | "fix" | "qa" | "test" | "audit" | "finish"
 type RunState = { taskDir: string; identifier: string; stage: Stage; fixRounds: number; maxFixRounds: number; handoffRetries: number; active: boolean; attemptId?: string; runId?: string; stopRequested?: boolean; reportStatus?: string; reportReason?: string };
 const stages: Stage[] = ["implement", "review", "fix", "qa", "test", "audit", "finish"];
 
+// Describe new model-emitted evidence explicitly. Saved legacy briefs still use
+// the conservative report reader; prose is never upgraded to a passing check.
+const proof = Type.Array(Type.String({ minLength: 1 }));
+const checkFields = {
+  status: Type.Optional(Type.String({ enum: ["passed", "failed", "skipped", "unverified"] })),
+  exitCode: Type.Optional(Type.Integer()),
+  result: Type.Optional(Type.String()),
+  evidence: Type.Optional(proof),
+};
+const commandResult = Type.Object({ command: Type.String({ minLength: 1 }), name: Type.Optional(Type.String()), ...checkFields }, { additionalProperties: false });
+const verificationResult = Type.Object({ name: Type.String({ minLength: 1 }), command: Type.Optional(Type.String()), ...checkFields }, { additionalProperties: false });
+const deliveryResult = Type.Object({
+  status: Type.String({ enum: ["yes", "no", "unknown"] }),
+  evidence: Type.Optional(proof),
+}, { additionalProperties: false });
+
 function tasksRoot() { return process.env.PI_TASKS_DIR ?? path.join(process.env.HOME ?? ".", ".pi/tasks"); }
 function runFile() { return path.join(tasksRoot(), "orchestration.json"); }
 function taskDir(identifier: string) {
@@ -91,7 +107,8 @@ function promptFor(state: RunState, context: any) {
     finish: "Summarize issue, approved plan, changes, deviations, acceptance criteria, verification outcomes, risks, follow-ups, and delivery evidence in workflow_handoff.reportDetails. The runtime generates reports/final.json, reports/final.html, and FINAL.md. Do not claim checks passed from a command name or infer delivery from completion. Do not commit, push, publish, or open a merge request.",
   };
   const handoffRetry = state.handoffRetries > 0 ? "The previous response did not create a valid handoff. Call workflow_handoff now with the evidence already collected." : "";
-  return `${handoffRetry}\n${instructions[state.stage]}\n\nTask directory: ${state.taskDir}\nShared context: ${path.join(state.taskDir, "artifacts/shared-context.json")}\nPrevious brief: ${JSON.stringify(context)}\nExpected handoff stage: ${stageNumber(state.stage)}-${state.stage}\nHandoff brief path: ${path.join(state.taskDir, "artifacts", "briefs", `${stageNumber(state.stage)}-${state.stage}.json`)}\nWrite the human report and call the workflow_handoff tool with the completed summary and evidence. Stop and request user input for destructive actions, missing access, unresolved scope, or repeated failure.`;
+  const evidenceInstructions = 'Call workflow_handoff with commandsRun objects {command, exitCode, result, evidence}, not prose strings. Record the actual exitCode only when observed; omit it for checks not run. reportDetails.verification uses objects {name, command, status, exitCode, result, evidence}; acceptanceCriteria uses {criterion, status: "met"|"unmet"|"unverified", evidence: ["specific evidence"]}. Reuse exact TASK.md criterion text. reportDetails.changes uses {file, summary}. reportDetails.delivery uses committed/published/deployed, each {status: "yes"|"no"|"unknown", evidence: ["specific evidence"]}. Never infer passing tests or delivery from stage completion; use skipped/unverified/unknown when appropriate. A claimed met or yes needs evidence.';
+  return `${handoffRetry}\n${instructions[state.stage]}\n${evidenceInstructions}\n\nTask directory: ${state.taskDir}\nShared context: ${path.join(state.taskDir, "artifacts/shared-context.json")}\nPrevious brief: ${JSON.stringify(context)}\nExpected handoff stage: ${stageNumber(state.stage)}-${state.stage}\nHandoff brief path: ${path.join(state.taskDir, "artifacts", "briefs", `${stageNumber(state.stage)}-${state.stage}.json`)}\nWrite the human report and call the workflow_handoff tool with the completed summary and evidence. Stop and request user input for destructive actions, missing access, unresolved scope, or repeated failure.`;
 }
 function stageNumber(stage: Stage) { return String(stages.indexOf(stage) + 2).padStart(2, "0"); }
 function previousBrief(state: RunState) {
@@ -124,26 +141,35 @@ export default function (pi: ExtensionAPI) {
   pi.registerTool({
     name: "workflow_handoff",
     label: "Workflow handoff",
-    description: "Write the compact, structured handoff brief for the currently running workflow stage.",
+    description: "Write the compact, structured handoff brief for the currently running workflow stage. Use structured command outcomes, acceptance evidence, and delivery states; never prose strings in report collections.",
+    promptGuidelines: ["Use workflow_handoff commandsRun objects with observed exitCode and result; never invent outcomes. workflow_handoff reportDetails needs structured verification, acceptanceCriteria, changes, and delivery objects. Missing evidence remains unverified/unknown."],
     parameters: Type.Object({
       stage: Type.String({ description: "Expected stage brief filename, for example 02-implement or 03-review" }),
       summary: Type.String(),
       changedFiles: Type.Optional(Type.Array(Type.String())),
       findings: Type.Optional(Type.Array(Type.Any())),
-      commandsRun: Type.Optional(Type.Array(Type.Any())),
+      commandsRun: Type.Optional(Type.Array(commandResult)),
       knownRisks: Type.Optional(Type.Array(Type.Any())),
       nextChecks: Type.Optional(Type.Array(Type.Any())),
       evidence: Type.Optional(Type.Array(Type.Any())),
       reportDetails: Type.Optional(Type.Object({
         summary: Type.Optional(Type.String()),
-        changes: Type.Optional(Type.Array(Type.Any())),
-        verification: Type.Optional(Type.Array(Type.Any())),
-        acceptanceCriteria: Type.Optional(Type.Array(Type.Any())),
+        changes: Type.Optional(Type.Array(Type.Object({ file: Type.String({ minLength: 1 }), summary: Type.String() }, { additionalProperties: false }))),
+        verification: Type.Optional(Type.Array(verificationResult)),
+        acceptanceCriteria: Type.Optional(Type.Array(Type.Object({
+          criterion: Type.String({ minLength: 1 }),
+          status: Type.String({ enum: ["met", "unmet", "unverified"] }),
+          evidence: Type.Optional(proof),
+        }, { additionalProperties: false }))),
         planDeviations: Type.Optional(Type.Array(Type.String())),
         risks: Type.Optional(Type.Array(Type.String())),
         nextSteps: Type.Optional(Type.Array(Type.String())),
-        delivery: Type.Optional(Type.Any()),
-      })),
+        delivery: Type.Optional(Type.Object({
+          committed: Type.Optional(deliveryResult),
+          published: Type.Optional(deliveryResult),
+          deployed: Type.Optional(deliveryResult),
+        }, { additionalProperties: false })),
+      }, { additionalProperties: false })),
     }),
     async execute(_toolCallId, params) {
       const state = readRun();

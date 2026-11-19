@@ -44,6 +44,12 @@ Defaults:
 - Local standards: `$HOME/.pi/standards/<domain>/projects/`; override the standards root with `PI_STANDARDS_DIR`.
 - Tasks: `$HOME/.pi/tasks/<domain>/<project>/`; override with `PI_TASKS_DIR`.
 
+## Local project standards discovery
+
+Think/development injection also reports the effective `PI_STANDARDS_DIR` root (default `$HOME/.pi/standards`) and a bounded project match for the confirmed domain. It inspects explicit repository/local-path identity fields in Markdown table rows or template bullet fields, not filenames or incidental mentions. `~/` expands against the current home directory; canonical paths match symlink aliases and components inside an explicitly declared repository, never similarly named sibling paths. Historical paths in trailing notes are not selected as the current identity.
+
+A unique match supplies an exact file path; read that file in full before proposing setup or execution. Multiple matches are ambiguous. Unsafe/unavailable files, escaping symlinks, oversized files (over 1 MiB), or a partial scan (over 250 Markdown files) make discovery unconfirmed and must not imply that project standards are absent. No directories or project files are created by discovery. Nonstandard Markdown identity formats and remote-only standards still need manual inspection/confirmation. Framework/domain detection and project-path matching are evidence, not execution approval.
+
 ## Bundled packs
 
 | Domain | Detection at the component directory | Development skill |

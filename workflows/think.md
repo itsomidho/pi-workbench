@@ -15,7 +15,7 @@ Use this workflow before non-trivial changes or decisions. The coordinator owns 
 ## Sequence
 
 1. Restate the topic and classify it.
-2. Read relevant files and project standards without editing. Discover domains with `piw domain detect <affected-repository-or-component-directory>`; use the injected discovery context when applicable, re-running detection if the affected component differs from the current directory. Read the selected manifest route entry. Never assume WordPress. Ambiguous, unconfirmed, or unsupported results require clarification or an approved main-session fallback.
+2. Read relevant files and project standards without editing. Discover domains with `piw domain detect <affected-repository-or-component-directory>`; use the injected discovery context when applicable, re-running detection if the affected component differs from the current directory. Read the selected manifest route entry and matched local project file from the injected standards discovery. Respect its effective standards root, home-relative/canonical path matching, and ambiguity/errors; do not conclude a project file is missing from its filename or a basename grep. Never assume WordPress. Ambiguous, unconfirmed, or unsupported results require clarification or an approved main-session fallback.
 3. Ask only blocking questions.
 4. Ask the verified read-only advisor for facts, assumptions, options, risks, and one recommendation; otherwise disclose coordinator-only analysis.
 5. Present the recommendation and wait for `go`.

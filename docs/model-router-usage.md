@@ -63,6 +63,17 @@ PI_ROUTER_TRACE=1 piw run
 
 `PI_ROUTER_PROVIDER` and `PI_ROUTER_MODEL` are explicit user choices. `PI_ROUTER_TRACE=1` prints the selected provider and model but never credentials.
 
+Catalog entries can be inaccessible under the provider account's guardrails even when adapter health succeeds. Prefer a verified scope rather than weakening those guardrails:
+
+```fish
+# Example: route only within a model verified for this installation/account.
+piw run --models 'tabdl/cx/gpt-6.1-sol'
+# Multiple approved candidates allow fallback inside that scope.
+piw run --models 'provider/model-one,provider/model-two'
+```
+
+Workbench excludes every failed candidate in the current retry chain and resets that branch-local list for the next user request. Pi controls which errors trigger retries and how many retries occur. Check assistant response metadata (`stopReason`, `errorMessage`, physical `provider/model`) when evaluating JSON/RPC runs: a successful process/command response alone does not establish successful model work.
+
 ## Debugging selection
 
 1. Confirm the adapter is installed:

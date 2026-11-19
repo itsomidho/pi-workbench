@@ -43,7 +43,15 @@ A stop request during a turn waits for that turn to settle before reporting, so 
 
 Each new run gets a run ID. Handoffs and usage are filtered to that run to avoid importing stale results from a previous execution. Legacy handoffs without run IDs are labeled with a review warning when regenerating a legacy report. Corrupt handoff JSON follows the same bounded retry/block/report path as a missing handoff instead of leaving the run active.
 
-The finish-stage `workflow_handoff` tool accepts optional `reportDetails` using the structure below. Other stages continue recording `commandsRun`, findings, changed files, risks, and next checks. The runtime performs final generation; stage agents should not create competing HTML/Markdown narratives.
+The finish-stage `workflow_handoff` tool accepts optional `reportDetails` using the structure below. Other stages continue recording `commandsRun`, findings, changed files, risks, and next checks. Newly emitted tool calls validate these evidence fields at Pi's argument boundary:
+
+- `commandsRun`: objects with `command` and optional observed integer `exitCode`, `status`, `result`, and string-array `evidence`. Command-only objects are allowed and remain unverified.
+- `reportDetails.verification`: objects with required `name` and optional `command`, `exitCode`, `status`, `result`, and string-array `evidence`. Check statuses are `passed`, `failed`, `skipped`, or `unverified`.
+- `reportDetails.changes`: `{ "file": "path", "summary": "what changed" }` objects, not prose strings.
+- `reportDetails.acceptanceCriteria`: `{ "criterion": "exact TASK.md criterion", "status": "met|unmet|unverified", "evidence": ["specific evidence"] }` objects. Reuse exact criterion text to update rather than duplicate baseline criteria.
+- `reportDetails.delivery`: optional `committed`, `published`, and `deployed` objects, each with `status` (`yes`, `no`, or `unknown`) and optional string-array `evidence`. Arbitrary fields such as `actionsNotPerformed` are rejected rather than silently ignored.
+
+This tightens new tool arguments, not saved report inputs. Older handoffs/details still regenerate with the conservative legacy reader: prose does not become a passing check, and unsupported delivery fields do not establish delivery. Replayed legacy tool calls using prose collections must be corrected to the structured form; validation errors do not save a handoff, and the existing bounded retry/block path still applies. Validation checks shape, not truth: the caller must record only outcomes it observed, and missing evidence still stays unverified/unknown. The runtime performs final generation; stage agents should not create competing HTML/Markdown narratives.
 
 Reports are snapshots, not a live dashboard. A resumed run does not rewrite an old report until it next stops/blocks/completes or an explicit snapshot is requested. Check the generation date and lifecycle state. Final report paths appear in runtime notifications; the coordinator should return them in the final chat summary.
 

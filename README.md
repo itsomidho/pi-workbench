@@ -186,6 +186,10 @@ $HOME/.config/pi-workbench/providers         Provider env files and CA certifica
 
 Credential files are mode `0600` and are never committed. Do not copy host credentials into a container unless you explicitly intend to configure that container.
 
+## Readiness and limits
+
+Use a verified model/account scope before relying on automatic routing: a healthy catalog can include models blocked by account guardrails. Managed stages are current-session roles, not independent agents. See [docs/readiness.md](docs/readiness.md) for repeatable checks, controlled live workflow validation, and checks that must remain explicitly unverified.
+
 ## Development
 
 ```bash

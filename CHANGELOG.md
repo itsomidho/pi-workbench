@@ -1,5 +1,16 @@
 # Changelog
 
+## Unreleased
+
+## 0.5.15 - 2026-11-20
+
+- Resolve local project standards from explicit canonical/home-relative repository paths and inject the effective standards root and unique match into Think/development; keep ambiguous/unsafe scans unconfirmed.
+- Track all failed model candidates within a branch-local retry chain to prevent A→B→A cycling; reset for a new user request and fail explicitly on exhaustion.
+- Add real Pi dispatch/fallback/exhaustion and forced disabled-write tests; document account guardrail limitations and approved model scopes.
+- Preserve positional prompts and `@files` in `piw run`, and honor the `--` separator when detecting model/provider options.
+- Validate structured command outcomes, report changes, acceptance evidence, and delivery states in new workflow handoffs; retain conservative legacy report regeneration.
+- Add real Pi RPC coverage for valid evidence propagation and bounded rejection of prose/malformed handoff fields.
+
 ## 0.5.14 - 2026-11-18
 
 - Generate one evidence-backed task report as JSON, Markdown, and self-contained dark HTML with responsive navigation, accessible states, and light printing.

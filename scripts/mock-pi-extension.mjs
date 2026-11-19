@@ -1,13 +1,13 @@
 import { createAssistantMessageEventStream, ToolCallArgumentsStream } from '@earendil-works/pi-ai';
 
-function response(model, message, text, toolCall) {
+function response(model, message, text, toolCall, toolName = 'workflow_handoff') {
   const stream = createAssistantMessageEventStream();
   const output = { role: 'assistant', content: [], api: model.api, provider: model.provider, model: model.id, usage: { input: 3, output: 2, cacheRead: 0, cacheWrite: 0, totalTokens: 5, cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, total: 0 } }, stopReason: 'pending', timestamp: Date.now() };
   const schedule = ['abort', 'stop-turn'].includes(process.env.PI_MOCK_REPORT_SCENARIO) ? fn => setTimeout(fn, 1000) : queueMicrotask;
   schedule(() => {
     stream.push({ type: 'start', partial: output });
     if (toolCall) {
-      const tool = { type: 'toolCall', id: `mock-${Date.now()}`, name: 'workflow_handoff', arguments: {} };
+      const tool = { type: 'toolCall', id: `mock-${Date.now()}`, name: toolName, arguments: {} };
       output.content.push(tool);
       const args = JSON.stringify(toolCall);
       const argumentStream = new ToolCallArgumentsStream();
@@ -37,6 +37,11 @@ export default function (pi) {
     streamSimple(model, context) {
       const text = context.messages.map(message => typeof message.content === 'string' ? message.content : JSON.stringify(message.content)).join('\n');
       const expected = [...text.matchAll(/\b(02-implement|03-review|04-fix|05-qa|06-test|07-audit|08-finish)\.json/g)].at(-1);
+      if (process.env.PI_MOCK_TOOLLESS_PROBE) {
+        return context.messages.at(-1)?.role === 'toolResult'
+          ? response(model, context, 'TOOLLESS_PROBE_FINISHED')
+          : response(model, context, 'Probe disabled write', { path: process.env.PI_MOCK_TOOLLESS_PROBE, content: 'This must never be written.' }, 'write');
+      }
       if (!text.includes('Task directory:')) return response(model, context, 'mock response');
       if (process.env.PI_MOCK_EXPECT_DOMAIN) {
         const latest = context.messages.filter(message => message.role === 'user').at(-1);
@@ -46,7 +51,12 @@ export default function (pi) {
       if (process.env.PI_MOCK_REPORT_SCENARIO === 'missing') return response(model, context, 'Deliberately no handoff');
       if (context.messages.at(-1)?.role === 'toolResult') return response(model, context, 'mock stage complete');
       const stageName = expected?.[1] ?? '02-implement';
-      return response(model, context, 'handoff', { stage: stageName, summary: `Mock completed ${expected[1]}`, changedFiles: [], findings: process.env.PI_MOCK_REPORT_SCENARIO === 'blocked' ? [{ id: 'mock-block', severity: 'high', summary: 'A blocking issue requires a decision.', blocking: true }] : [], commandsRun: [`mock-${stageName}`], knownRisks: [], nextChecks: [], evidence: [{ description: 'mock provider evidence' }], reportDetails: stageName === '08-finish' ? { summary: 'Mock finish supplied structured report details.', verification: [{ name: 'Mock structured check', exitCode: 0, result: 'Recorded mock verification fixture.' }], acceptanceCriteria: [{ criterion: 'Mock reporting fixture is propagated', status: 'met', evidence: ['Mock handoff payload reached the report.'] }] } : undefined });
+      const latestUser = context.messages.filter(message => message.role === 'user').at(-1);
+      const latestPrompt = typeof latestUser?.content === 'string' ? latestUser.content : (latestUser?.content ?? []).filter(block => block.type === 'text').map(block => block.text).join('\n');
+      const loopFinding = process.env.PI_MOCK_FIX_LOOP === '1' && stageName === '03-review' && !latestPrompt.includes('"stage":"04-fix"');
+      if (process.env.PI_MOCK_FIX_LOOP === '1' && stageName === '05-qa' && !latestPrompt.includes('Mock completed 03-review')) throw new Error('QA did not receive the final review handoff');
+      if (process.env.PI_MOCK_HANDOFF_PAYLOAD) return response(model, context, 'Schema fixture handoff', JSON.parse(process.env.PI_MOCK_HANDOFF_PAYLOAD));
+      return response(model, context, 'handoff', { stage: stageName, summary: `Mock completed ${expected[1]}`, changedFiles: [], findings: process.env.PI_MOCK_REPORT_SCENARIO === 'blocked' ? [{ id: 'mock-block', severity: 'high', summary: 'A blocking issue requires a decision.', blocking: true }] : loopFinding ? [{ id: 'mock-fix-loop', severity: 'medium', summary: 'Deterministic review/fix fixture finding.', blocking: true }] : [], commandsRun: [{ command: `mock-${stageName}` }], knownRisks: [], nextChecks: [], evidence: [{ description: 'mock provider evidence' }], reportDetails: stageName === '08-finish' ? { summary: 'Mock finish supplied structured report details.', verification: [{ name: 'Mock structured check', exitCode: 0, result: 'Recorded mock verification fixture.' }], acceptanceCriteria: [{ criterion: 'Mock reporting fixture is propagated', status: 'met', evidence: ['Mock handoff payload reached the report.'] }] } : undefined });
     },
   });
 }

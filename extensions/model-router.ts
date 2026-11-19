@@ -8,7 +8,7 @@ type Requirements = {
   contextWindowMin: number;
 };
 
-type RouterState = { provider: string; id: string };
+type RouterState = { provider: string; id: string; failedModels?: string[] };
 type RouterRequest = ModelRouteRequest<RouterState>;
 
 const ROUTER_PROVIDER = "router";
@@ -109,13 +109,16 @@ function choose(request: RouterRequest, ctx: ExtensionContext, wanted: Requireme
 
 function route(request: RouterRequest, ctx: ExtensionContext): ModelRoute<RouterState> {
   const failed = request.failed?.model;
-  const failedKey = failed ? `${failed.provider}/${failed.id}` : undefined;
-  const sticky = request.reason !== "user" && !failed ? request.previous?.model : undefined;
-  const selected = sticky ?? choose(request, ctx, requirements(request), failedKey ? new Set([failedKey]) : undefined);
+  // Branch-local quarantine for this retry chain, not a global account blacklist.
+  // Pi persists route state even when the selected request subsequently fails.
+  const failedModels = new Set<string>(request.reason === "retry" && Array.isArray(request.state?.failedModels) ? request.state.failedModels : []);
+  if (failed) failedModels.add(`${failed.provider}/${failed.id}`);
+  const sticky = request.reason === "continuation" && !failed ? request.previous?.model : undefined;
+  const selected = sticky ?? choose(request, ctx, requirements(request), failedModels);
   return {
     model: selected,
     thinkingLevel: request.thinkingLevel,
-    state: { provider: selected.provider, id: selected.id },
+    state: { provider: selected.provider, id: selected.id, failedModels: [...failedModels] },
   };
 }
 

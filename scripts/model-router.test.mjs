@@ -140,6 +140,40 @@ test('native SDK tool protocols are eligible while unknown protocols and context
   }
 });
 
+test('retry fallback excludes the full failed chain, exhausts explicitly, and resets for a new user request', async t => {
+  const h = await harness(t, 'think');
+  const candidates = [300_000, 200_000, 100_000].map((contextWindow, i) => ({ ...h.reasoning, id: `candidate-${i}`, contextWindow }));
+  h.ctx.modelRegistry.getAvailable = () => candidates;
+  const first = await h.route();
+  assert.equal(first.model.id, 'candidate-0');
+  const second = await h.route({ reason: 'retry', state: first.state, failed: { model: first.model } });
+  assert.equal(second.model.id, 'candidate-1');
+  const third = await h.route({ reason: 'retry', state: second.state, failed: { model: second.model } });
+  assert.equal(third.model.id, 'candidate-2', 'Retry must not cycle back to an already failed model');
+  await assert.rejects(h.route({ reason: 'retry', state: third.state, failed: { model: third.model } }), /No accessible model/);
+  assert.equal((await h.route({ reason: 'user', state: third.state })).model.id, 'candidate-0');
+  const continued = await h.route({ reason: 'continuation', state: third.state, previous: { model: third.model } });
+  assert.equal(continued.model.id, 'candidate-2');
+  assert.deepEqual(continued.state.failedModels, [], 'A successful continuation starts no failure quarantine');
+});
+
+test('a routing-error retry cannot resurrect a quarantined previous successful model', async t => {
+  const h = await harness(t, 'think');
+  h.ctx.modelRegistry.getAvailable = () => [h.reasoning];
+  await assert.rejects(h.route({ reason: 'retry', state: { provider: 'test', id: 'reasoning', failedModels: ['test/reasoning'] }, previous: { model: h.reasoning } }), /No accessible model/);
+});
+
+test('provider-only overrides can fall back, while pinned failed models fail explicitly', async t => {
+  const h = await harness(t, 'think');
+  const other = { ...h.reasoning, id: 'backup' };
+  h.ctx.modelRegistry.getAvailable = () => [h.reasoning, other];
+  process.env.PI_ROUTER_PROVIDER = 'test';
+  const first = await h.route();
+  assert.equal((await h.route({ reason: 'retry', state: first.state, failed: { model: first.model } })).model.id, 'backup');
+  process.env.PI_ROUTER_MODEL = 'reasoning';
+  await assert.rejects(h.route({ reason: 'retry', failed: { model: h.reasoning } }), /Requested router override is unavailable/);
+});
+
 test('explicit model override still respects role requirements', async t => {
   const h = await harness(t, 'think');
   process.env.PI_ROUTER_MODEL = 'general';

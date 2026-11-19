@@ -8,7 +8,8 @@ import { discoverDomains } from './domains.mjs';
 
 const root = path.resolve(new URL('..', import.meta.url).pathname);
 
-for (const domain of [...discoverDomains(root).domains.filter(d => d.routes.development?.engine === 'managed-development-v1').map(d => d.id), 'sample']) test(`Pi RPC runs ${domain} managed workflow through finish with a mock model`, async () => {
+const cases = [...discoverDomains(root).domains.filter(d => d.routes.development?.engine === 'managed-development-v1').map(d => ({ domain: d.id })), { domain: 'sample' }, { domain: 'nextjs', fixLoop: true }];
+for (const { domain, fixLoop = false } of cases) test(`Pi RPC runs ${domain} managed workflow through finish with a mock model${fixLoop ? ' and review/fix/re-review' : ''}`, async () => {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'pi-workbench-runtime-'));
   const env = { ...process.env, PI_STANDARDS_DIR: path.join(dir, 'standards'), PI_TASKS_DIR: path.join(dir, 'tasks') };
   if (domain === 'sample') {
@@ -24,6 +25,8 @@ for (const domain of [...discoverDomains(root).domains.filter(d => d.routes.deve
     env.PI_MOCK_EXPECT_ROLE = 'SAMPLE RUNTIME ROLE';
   }
   env.PI_MOCK_EXPECT_DOMAIN = domain;
+  if (fixLoop) env.PI_MOCK_FIX_LOOP = '1';
+  else delete env.PI_MOCK_FIX_LOOP;
   env.PI_ROUTER_ROLE = 'think';
   execFileSync(process.execPath, ['scripts/init-project.mjs', domain, 'sample-site'], { cwd: root, env });
   execFileSync(process.execPath, ['scripts/create-task.mjs', domain, 'sample-site', 'runtime-flow', 'Runtime flow'], { cwd: root, env });
@@ -88,6 +91,11 @@ for (const domain of [...discoverDomains(root).domains.filter(d => d.routes.deve
   child.stdin.write('{"type":"abort"}\n');
   child.stdin.end();
   await new Promise(resolve => child.once('close', resolve));
+  if (fixLoop) {
+    assert.ok(fs.existsSync(path.join(taskDir, 'artifacts/briefs/04-fix.json')));
+    const run = JSON.parse(fs.readFileSync(path.join(env.PI_TASKS_DIR, 'orchestration.json'), 'utf8'));
+    assert.equal(run.fixRounds, 1);
+  }
   for (const stage of ['02-implement', '03-review', '05-qa', '06-test', '07-audit', '08-finish']) assert.ok(fs.existsSync(path.join(taskDir, 'artifacts', 'briefs', `${stage}.json`)), stage);
   assert.match(fs.readFileSync(path.join(taskDir, 'TASK.md'), 'utf8'), /\| Status \| done \|/);
   assert.ok(fs.existsSync(path.join(taskDir, 'reports/final.html')));
