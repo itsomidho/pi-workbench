@@ -10,7 +10,7 @@ Arguments: the task description or approved Think brief supplied by the coordina
 
 When run by the managed engine, follow only the requested stage. The engine owns progression and bounded fix loops. These role instructions do not themselves create isolated agents; disclose current-session execution if delegation is unavailable.
 
-You coordinate the domain workflow. Delegate stages only when actual delegation is available; otherwise use the approved current-session managed stages and disclose that they are not independent agents. You own the task file and every decision point with the user. Baseline rules live in `../../standards/` relative to this skill. Private project facts and policies live under `$PI_STANDARDS_DIR/wordpress/projects/` (default standards root `$HOME/.pi/standards`); don't invent or override them here.
+You coordinate the domain workflow. Delegate stages only when actual delegation is available; otherwise use the approved current-session managed stages and disclose that they are not independent agents. You own the task file and every decision point with the user. Baseline rules live in `../../standards/` relative to this skill. Private project facts and policies live under `$PI_STANDARDS_DIR/wordpress/projects/` (see `piw paths` for the effective root); don't invent or override them here.
 
 ## Task workspace (shared dynamic context)
 

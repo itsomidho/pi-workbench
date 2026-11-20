@@ -34,14 +34,12 @@ if ! command -v pi >/dev/null; then
 fi
 agent_dir="${PI_CODING_AGENT_DIR:-${PI_AGENT_DIR:-$HOME/.pi/agent}}"
 export PI_CODING_AGENT_DIR="$agent_dir"
-standards_dir="${PI_STANDARDS_DIR:-$HOME/.pi/standards}"
-tasks_dir="${PI_TASKS_DIR:-$HOME/.pi/tasks}"
-mkdir -p "$agent_dir" "$standards_dir" "$tasks_dir"
+mkdir -p "$agent_dir"
 printf 'Installing pi-workbench package globally from %s\n' "$root"
 npm install -g --force "$root"
 pi install "$root"
 printf 'Pi found: %s\n' "$(command -v pi)"
 printf 'Portable config root: %s\n' "$root"
 printf 'Pi agent directory: %s\n' "$agent_dir"
-printf 'Standards root: %s\n' "$standards_dir"
-printf 'Task workspace: %s\n' "$tasks_dir"
+printf 'Workbench user paths (created as needed):\n'
+node "$root/scripts/piw.mjs" paths

@@ -96,25 +96,21 @@ Consumer installations should not use this mode.
 
 ## Runtime locations
 
-Defaults:
+Run `piw paths` to print effective Workbench paths. Defaults for a fresh install:
 
-```text
-$HOME/.pi-workbench                         Installed application
-$HOME/.pi/agent                             Pi settings, sessions, auth, MCP state
-$HOME/.pi/standards                         Local standards and project facts
-$HOME/.pi/tasks                             Task state and artifacts
-$HOME/.pi-adapters                          Independent adapter source
-$HOME/.config/pi-workbench/providers         Provider env files and CA certificates
-```
+| Data | Default | Explicit override |
+|---|---|---|
+| Model policy | `~/.config/pi-workbench/model-capabilities.json` | `PI_MODEL_CAPABILITIES_FILE` |
+| Provider environment files and CA certificates | `~/.config/pi-workbench/providers/` | `PI_WORKBENCH_CONFIG_DIR` (the providers directory itself) |
+| Local project standards | `~/.config/pi-workbench/standards/` | `PI_STANDARDS_DIR` |
+| Tasks, reports, and evidence | `~/.local/state/pi-workbench/tasks/` | `PI_TASKS_DIR` |
+| Think notes | `~/.local/state/pi-workbench/think/` | `PI_THINK_DIR` |
 
-Override Workbench task/standards locations during installation if required. `PI_AGENT_DIR` is a Workbench installer alias for Pi's actual `PI_CODING_AGENT_DIR`; an explicitly set `PI_CODING_AGENT_DIR` takes precedence. The chosen directory is exported to Pi for registration:
+Absolute `XDG_CONFIG_HOME` and `XDG_STATE_HOME` replace `~/.config` and `~/.local/state`, respectively. Relative or empty XDG values are ignored. Explicit Workbench overrides take precedence; the CLI model-policy commands also accept an explicit path argument.
 
-```bash
-PI_AGENT_DIR="$HOME/.config/pi/agent" \
-PI_STANDARDS_DIR="$HOME/.config/pi/standards" \
-PI_TASKS_DIR="$HOME/.config/pi/tasks" \
-./scripts/install.sh
-```
+For each item, if the new location is absent and the old one exists, Workbench continues to use the old one, including for writes. The legacy locations are `~/.pi/{model-capabilities.json,standards,tasks,think}` and `~/.config/pi-workbench/providers/` (when using a custom XDG configuration home). If both exist, the new location wins unless explicitly overridden; contents are never merged. Nothing is moved or copied automatically. Before migrating manually, stop active workflows, back up the source, and check for absolute paths in task and provider configuration (including CA and note references). Verify the resulting paths with `piw paths`.
+
+Application source, adapter source, and Pi's own settings are unchanged. `PI_AGENT_DIR` is a Workbench installer alias for Pi's `PI_CODING_AGENT_DIR`; an explicitly set `PI_CODING_AGENT_DIR` takes precedence.
 
 Do not place credentials, OAuth state, project facts, or task state in the repository or application archive.
 

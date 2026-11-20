@@ -107,7 +107,7 @@ Reporting does not require a framework pack or a managed workflow:
 piw report init fix-search "Fix search behavior"
 ```
 
-This returns a new task directory under `$PI_TASKS_DIR/general/main-session/<date>-fix-search` (default task root: `$HOME/.pi/tasks`). `general/main-session` is a report workspace, not an invented executable framework domain. Creation does not execute code or imply plan approval.
+This returns a new task directory under `$PI_TASKS_DIR/general/main-session/<date>-fix-search` (default task root: `$HOME/.local/state/pi-workbench/tasks`). `general/main-session` is a report workspace, not an invented executable framework domain. Creation does not execute code or imply plan approval.
 
 After real approval, the coordinator records the brief, approved plan, constraints, and acceptance criteria, and can use the existing approval commands:
 

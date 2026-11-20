@@ -1,9 +1,10 @@
+import { workbenchPaths } from "./workbench-paths.mjs";
 import crypto from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
 
 export const reportStatuses = ['completed', 'blocked', 'stopped', 'in-progress'];
-export const tasksRoot = () => process.env.PI_TASKS_DIR ?? path.join(process.env.HOME ?? '.', '.pi/tasks');
+export const tasksRoot = () => workbenchPaths().tasks;
 const list = value => Array.isArray(value) ? value.slice(0, 250) : [];
 const text = value => typeof value === 'string' ? value.slice(0, 16000) : '';
 const evidence = value => list(typeof value === 'string' ? [value] : value).map(item => typeof item === 'string' ? text(item) : ['description', 'file', 'path', 'result'].map(key => text(item?.[key])).filter(Boolean).join(' · ')).filter(Boolean);

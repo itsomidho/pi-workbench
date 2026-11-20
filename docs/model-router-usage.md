@@ -63,7 +63,7 @@ piw model-capabilities list [path]
 piw model-capabilities validate [path]
 ```
 
-`init` creates the policy interactively, `list` displays configured models and stage allowlists, and `validate` checks the file. The default path is `$HOME/.pi/model-capabilities.json`; use `PI_MODEL_CAPABILITIES_FILE` or an explicit path to select another file. The initializer never contacts providers or reads credentials. It accepts vendor-neutral provider/model IDs such as `provider-a/model-id` or `provider-b/model-id` and writes exact per-stage allowlists.
+`init` creates the policy interactively, `list` displays configured models and stage allowlists, and `validate` checks the file. The default path is `$HOME/.config/pi-workbench/model-capabilities.json`; use `PI_MODEL_CAPABILITIES_FILE` or an explicit path to select another file. The initializer never contacts providers or reads credentials. It accepts vendor-neutral provider/model IDs such as `provider-a/model-id` or `provider-b/model-id` and writes exact per-stage allowlists.
 
 ```json
 {

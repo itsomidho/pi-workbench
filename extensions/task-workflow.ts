@@ -1,3 +1,4 @@
+import { workbenchPaths } from "../scripts/workbench-paths.mjs";
 import { domainStageContext } from "../scripts/domains.mjs";
 import { requestRouterRole } from "../scripts/router-role.mjs";
 import { assertApprovedPlan } from "../scripts/workflow-approval.mjs";
@@ -7,10 +8,10 @@ import path from "node:path";
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 
 function tasksRoot() {
-  return process.env.PI_TASKS_DIR ?? path.join(process.env.HOME ?? ".", ".pi/tasks");
+  return workbenchPaths().tasks;
 }
 function standardsRootFor(domain: string) {
-  return path.join(process.env.PI_STANDARDS_DIR ?? path.join(process.env.HOME ?? ".", ".pi/standards"), domain);
+  return path.join(workbenchPaths().standards, domain);
 }
 function safePart(value: string) {
   return /^[a-z][a-z0-9-]*$/.test(value);

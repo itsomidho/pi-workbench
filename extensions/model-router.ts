@@ -1,3 +1,4 @@
+import { workbenchPaths } from "../scripts/workbench-paths.mjs";
 import type { ExtensionAPI, ExtensionContext, ModelRoute, ModelRouteRequest } from "@earendil-works/pi-coding-agent";
 import fs from "node:fs";
 import { routerRoleEvent } from "../scripts/router-role.mjs";
@@ -21,8 +22,6 @@ const PROVIDER_ENV = "PI_ROUTER_PROVIDER";
 const MODEL_ENV = "PI_ROUTER_MODEL";
 const TRACE_ENV = "PI_ROUTER_TRACE";
 const COMPLEXITY_ENV = "PI_ROUTER_COMPLEXITY";
-const CAPABILITIES_FILE_ENV = "PI_MODEL_CAPABILITIES_FILE";
-const DEFAULT_CAPABILITIES_FILE = `${process.env.HOME ?? "."}/.pi/model-capabilities.json`;
 const COMPLEXITIES = new Set<Complexity>(["simple", "moderate", "complex"]);
 const DEFAULT_REQUIREMENTS: Requirements = { reasoning: false, tools: true, vision: false, contextWindowMin: 64_000, capability: "coding" };
 // The environment supplies the initial role; explicit session changes take precedence.
@@ -80,7 +79,7 @@ function satisfies(model: any, wanted: Requirements): boolean {
   return true;
 }
 function capabilityPolicy(): { models: Record<string, any>; stages: Record<string, string[]>; allowUnlistedModels: boolean } {
-  const file = process.env[CAPABILITIES_FILE_ENV] ?? DEFAULT_CAPABILITIES_FILE;
+  const file = workbenchPaths().modelCapabilities;
   if (!fs.existsSync(file)) return { models: {}, stages: {}, allowUnlistedModels: true };
   try {
     const policy = JSON.parse(fs.readFileSync(file, "utf8"));

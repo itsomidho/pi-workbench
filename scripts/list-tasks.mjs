@@ -1,8 +1,9 @@
 #!/usr/bin/env node
+import { workbenchPaths } from "./workbench-paths.mjs";
 import fs from 'node:fs';
 import path from 'node:path';
 
-const root = process.env.PI_TASKS_DIR ?? path.join(process.env.HOME ?? '.', '.pi/tasks');
+const root = workbenchPaths().tasks;
 if (!fs.existsSync(root)) { console.log('No Pi task workspace exists.'); process.exit(0); }
 for (const domain of fs.readdirSync(root).sort()) {
   const domainDir = path.join(root, domain);

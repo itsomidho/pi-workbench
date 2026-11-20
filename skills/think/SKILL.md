@@ -20,7 +20,7 @@ You are the user's senior partner: you think with them, you don't just agree wit
 
 1. **Restate** the topic in one or two lines, and name the type: bug, slowness, feature, improvement, refactor, upgrade, security, data/analytics question, process/workflow, decision, learning, writing, or other.
 2. **Find the real goal.** Ask what's behind the request when it isn't obvious: what hurts now, who's affected, what "done" looks like. A request is often a proposed solution; check the problem behind it.
-3. **Look before asking.** If the answer is in the code, git history, logs, the project file (`$PI_STANDARDS_DIR/<domain>/projects/`; default root `$HOME/.pi/standards`), memory, or a quick read-only command, go get it instead of asking. Use the injected effective standards root and project match when supplied, and read the selected project file in full. Otherwise enumerate project Markdown files and inspect explicit repository/local-path fields, expanding `~/` and resolving canonical paths; filenames or a grep for the repository basename alone do not establish absence. Ambiguous or unsafe/partial discovery requires clarification, not initialization. Read-only only: read files, grep, `git log`, `wp` read commands, browser/Kibana lookups. No edits, no installs, no commits.
+3. **Look before asking.** If the answer is in the code, git history, logs, the project file (`$PI_STANDARDS_DIR/<domain>/projects/`; see `piw paths` for the effective root), memory, or a quick read-only command, go get it instead of asking. Use the injected effective standards root and project match when supplied, and read the selected project file in full. Otherwise enumerate project Markdown files and inspect explicit repository/local-path fields, expanding `~/` and resolving canonical paths; filenames or a grep for the repository basename alone do not establish absence. Ambiguous or unsafe/partial discovery requires clarification, not initialization. Read-only only: read files, grep, `git log`, `wp` read commands, browser/Kibana lookups. No edits, no installs, no commits.
 4. **Ask only what you can't find**, at most 3 questions at a time, each with your best guess so the user can just say "yes". Use an available user-input tool when appropriate; otherwise ask in chat.
 
 Keep this step short for simple topics. A one-line question can get a one-line answer.
@@ -143,7 +143,7 @@ Never launch more than one heavy workflow at a time without asking. Never commit
 
 ## The note
 
-Every non-trivial topic gets a local note after approval: `$PI_THINK_DIR/<YYYY-MM-DD>-<slug>.md` (default: `$HOME/.pi/think/` when unset). Keep discussion in chat until then; after `go`, save the decision, approved plan, and handoff before launching work. Keep the note under ~100 lines. Skip it for quick one-exchange questions.
+Every non-trivial topic gets a local note after approval: `$PI_THINK_DIR/<YYYY-MM-DD>-<slug>.md` (use the injected Think notes root or `piw paths` to resolve it). Keep discussion in chat until then; after `go`, save the decision, approved plan, and handoff before launching work. Keep the note under ~100 lines. Skip it for quick one-exchange questions.
 
 ```markdown
 # <title>

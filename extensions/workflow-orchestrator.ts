@@ -1,3 +1,4 @@
+import { workbenchPaths } from "../scripts/workbench-paths.mjs";
 import { domainStageContext } from "../scripts/domains.mjs";
 import { requestRouterRole } from "../scripts/router-role.mjs";
 import { assertApprovedPlan } from "../scripts/workflow-approval.mjs";
@@ -29,7 +30,7 @@ const deliveryResult = Type.Object({
   evidence: Type.Optional(proof),
 }, { additionalProperties: false });
 
-function tasksRoot() { return process.env.PI_TASKS_DIR ?? path.join(process.env.HOME ?? ".", ".pi/tasks"); }
+function tasksRoot() { return workbenchPaths().tasks; }
 function runFile() { return path.join(tasksRoot(), "orchestration.json"); }
 function taskDir(identifier: string) {
   const parts = identifier.split("/");

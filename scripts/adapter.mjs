@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import { workbenchPaths } from "./workbench-paths.mjs";
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
@@ -6,7 +7,7 @@ import readline from 'node:readline';
 import { spawnSync } from 'node:child_process';
 
 const [action, ...args] = process.argv.slice(2);
-const configDir = process.env.PI_WORKBENCH_CONFIG_DIR || path.join(os.homedir(), '.config', 'pi-workbench', 'providers');
+const configDir = workbenchPaths().providers;
 const adaptersDir = process.env.PI_ADAPTERS_DIR || path.join(os.homedir(), '.pi-adapters');
 fs.mkdirSync(configDir, { recursive: true, mode: 0o700 });
 

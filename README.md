@@ -116,7 +116,7 @@ piw model-capabilities list [path]
 piw model-capabilities validate [path]
 ```
 
-`init` creates the interactive policy, `list` displays configured models and stage allowlists, and `validate` checks the policy. The default path is `$HOME/.pi/model-capabilities.json`; `PI_MODEL_CAPABILITIES_FILE` or an explicit path can override it. See [docs/model-router-usage.md](docs/model-router-usage.md).
+`init` creates the interactive policy, `list` displays configured models and stage allowlists, and `validate` checks the policy. The default path is `$HOME/.config/pi-workbench/model-capabilities.json`; `PI_MODEL_CAPABILITIES_FILE` or an explicit path can override it. See [docs/model-router-usage.md](docs/model-router-usage.md).
 
 ## Provider adapters
 
@@ -171,9 +171,9 @@ Inside Pi, use `/think` to produce a plan. Approve the plan explicitly, then sta
 The workflow can run implementation, review, bounded fix/review loops, QA, tests, audit, and finish. It pauses for missing handoffs, approval, user input, or exceeded limits. Completed, blocked, stopped, and aborted runs produce consistent JSON, Markdown, and offline dark HTML reports:
 
 ```text
-$HOME/.pi/tasks/wordpress/my-site/<date-slug>/FINAL.md
-$HOME/.pi/tasks/wordpress/my-site/<date-slug>/reports/final.json
-$HOME/.pi/tasks/wordpress/my-site/<date-slug>/reports/final.html
+$HOME/.local/state/pi-workbench/tasks/wordpress/my-site/<date-slug>/FINAL.md
+$HOME/.local/state/pi-workbench/tasks/wordpress/my-site/<date-slug>/reports/final.json
+$HOME/.local/state/pi-workbench/tasks/wordpress/my-site/<date-slug>/reports/final.html
 ```
 
 Reports distinguish recorded results, unverified checks, acceptance, risks, and commit/publication/deployment status. Main-session work can use `piw report init <slug> <title>` and `piw report generate <task-directory> <status>` without a framework workflow. See [docs/reports.md](docs/reports.md) for the schema, evidence inputs, privacy limitations, dark UI, and light printing.
@@ -187,11 +187,15 @@ Application files and private runtime data are separate:
 ```text
 $HOME/.pi-workbench                         Workbench application
 $HOME/.pi/agent                             Pi runtime and sessions
-$HOME/.pi/standards                         Local project standards
-$HOME/.pi/tasks                             Task state and FINAL.md
+$HOME/.config/pi-workbench/standards                         Local project standards
+$HOME/.local/state/pi-workbench/tasks                             Task state and FINAL.md
 $HOME/.pi-adapters/pi-<provider>             Adapter source
 $HOME/.config/pi-workbench/providers         Provider env files and CA certificates
+$HOME/.config/pi-workbench/model-capabilities.json  Model routing policy
+$HOME/.local/state/pi-workbench/think        Think notes
 ```
+
+Run `piw paths` to see effective paths, including XDG settings, explicit overrides, and legacy fallback. See [runtime locations](docs/installation.md#runtime-locations) before moving any existing files.
 
 Credential files are mode `0600` and are never committed. Do not copy host credentials into a container unless you explicitly intend to configure that container.
 

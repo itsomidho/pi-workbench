@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import { workbenchPaths } from "./workbench-paths.mjs";
 import fs from 'node:fs';
 import path from 'node:path';
 
@@ -16,8 +17,8 @@ const plan = section('Plan');
 const handoff = section('Handoff brief');
 const complexity = note.match(/^\| Complexity \| (simple|moderate|complex) \|$/mi)?.[1]?.toLowerCase() ?? 'moderate';
 if (!plan || /^None\.?$/i.test(plan)) throw new Error('Think note has no actionable Plan section');
-const standardsRoot = process.env.PI_STANDARDS_DIR ?? path.join(process.env.HOME ?? '.', '.pi/standards');
-const tasksRoot = process.env.PI_TASKS_DIR ?? path.join(process.env.HOME ?? '.', '.pi/tasks');
+const standardsRoot = workbenchPaths().standards;
+const tasksRoot = workbenchPaths().tasks;
 const projectFile = path.join(standardsRoot, domain, 'projects', `${project}.md`);
 if (!fs.existsSync(projectFile)) throw new Error(`No local project standards file: ${projectFile}`);
 const date = new Date().toISOString().slice(0, 10);

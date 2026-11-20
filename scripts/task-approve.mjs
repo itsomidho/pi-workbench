@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import { workbenchPaths } from "./workbench-paths.mjs";
 import crypto from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
@@ -6,7 +7,7 @@ import path from 'node:path';
 const identifier = process.argv[2];
 const parts = identifier?.split('/') ?? [];
 if (parts.length !== 3 || !/^[a-z][a-z0-9-]*$/.test(parts[0]) || !/^[a-z][a-z0-9-]*$/.test(parts[1]) || !/^\d{4}-\d{2}-\d{2}-[a-z][a-z0-9-]*$/.test(parts[2])) throw new Error('Usage: node scripts/task-approve.mjs <domain>/<project>/<date-slug>');
-const root = path.resolve(process.env.PI_TASKS_DIR ?? path.join(process.env.HOME ?? '.', '.pi/tasks'));
+const root = path.resolve(workbenchPaths().tasks);
 const dir = path.resolve(root, ...parts);
 const file = path.join(dir, 'TASK.md');
 if (!dir.startsWith(`${root}${path.sep}`) || !fs.existsSync(file)) throw new Error(`Task not found: ${identifier}`);

@@ -1,3 +1,4 @@
+import { workbenchPaths } from "./workbench-paths.mjs";
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -128,5 +129,5 @@ export function domainStageContext(domainId, stage, root = configRoot()) {
   const spec = route.stages[stage];
   const roleFile = packPath(domain.dir, `${domain.roles}/${spec.role}.md`);
   const routerRole = { plan: 'planner', implement: 'developer', review: 'code-reviewer', fix: 'developer', qa: 'qa', test: 'test-writer', audit: 'security-auditor', finish: 'developer' }[stage];
-  return { role: spec.role, routerRole, stages: route.stages, text: `Workbench root: ${path.resolve(root)}\nDomain: ${domain.id}\nLocal project facts: ${path.join(process.env.PI_STANDARDS_DIR ?? path.join(process.env.HOME ?? '.', '.pi/standards'), domain.id, 'projects')}\nWorkflow entry: ${route.entry}\nRead that entry for domain-specific rules; the managed engine controls stage progression.\nDomain standards: ${domain.resources.standards}\nDomain skills: ${domain.resources.skills}\nQuality gates: ${domain.resources.qualityGates}\nRole instructions (${roleFile}):\n${fs.readFileSync(roleFile, 'utf8')}\nExecution: current-session stage, not a separate delegated agent. Role instructions do not enforce tool permissions.` };
+  return { role: spec.role, routerRole, stages: route.stages, text: `Workbench root: ${path.resolve(root)}\nDomain: ${domain.id}\nLocal project facts: ${path.join(workbenchPaths().standards, domain.id, 'projects')}\nWorkflow entry: ${route.entry}\nRead that entry for domain-specific rules; the managed engine controls stage progression.\nDomain standards: ${domain.resources.standards}\nDomain skills: ${domain.resources.skills}\nQuality gates: ${domain.resources.qualityGates}\nRole instructions (${roleFile}):\n${fs.readFileSync(roleFile, 'utf8')}\nExecution: current-session stage, not a separate delegated agent. Role instructions do not enforce tool permissions.` };
 }

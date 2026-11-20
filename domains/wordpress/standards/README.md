@@ -8,7 +8,7 @@ checklists/INDEX.md     routing table (which checklist applies to which files) +
 checklists/*.md         the rules, one domain per file
 ```
 
-`PI_STANDARDS_DIR` is the local standards root (default `$HOME/.pi/standards`), not this bundled directory. Resolve `checklists/` below relative to this README. Real project facts are not bundled with Workbench; local project-specific policies may extend these baseline rules.
+`PI_STANDARDS_DIR` is the local standards root (default `$HOME/.config/pi-workbench/standards`), not this bundled directory. Resolve `checklists/` below relative to this README. Real project facts are not bundled with Workbench; local project-specific policies may extend these baseline rules.
 
 ## Startup procedure (every agent, before any work)
 

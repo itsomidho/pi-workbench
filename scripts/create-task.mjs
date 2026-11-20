@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import { workbenchPaths } from "./workbench-paths.mjs";
 import fs from 'node:fs';
 import path from 'node:path';
 
@@ -8,9 +9,9 @@ if (!valid(domain) || !valid(project) || !valid(slug) || !titleParts.length) {
   console.error('Usage: node scripts/create-task.mjs <domain> <project> <slug> <title>');
   process.exit(2);
 }
-const standardsRoot = process.env.PI_STANDARDS_DIR ?? path.join(process.env.HOME ?? '.', '.pi/standards');
+const standardsRoot = workbenchPaths().standards;
 const standards = path.join(standardsRoot, domain);
-const tasks = process.env.PI_TASKS_DIR ?? path.join(process.env.HOME ?? '.', '.pi/tasks');
+const tasks = workbenchPaths().tasks;
 const projectFile = path.join(standards, 'projects', `${project}.md`);
 if (!fs.existsSync(projectFile)) throw new Error(`No local project standards file: ${projectFile}`);
 const date = new Date().toISOString().slice(0, 10);

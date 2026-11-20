@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import { workbenchPaths } from "./workbench-paths.mjs";
 import { configRoot, loadDomain, packPath } from './domains.mjs';
 import fs from 'node:fs';
 import path from 'node:path';
@@ -9,7 +10,7 @@ if (!valid(domain) || !valid(name)) {
   console.error('Usage: node scripts/init-project.mjs <domain> <project-name> [standards-root]');
   process.exit(2);
 }
-const standardsRoot = path.resolve(standardsRootArg ?? process.env.PI_STANDARDS_DIR ?? path.join(process.env.HOME ?? '.', '.pi/standards'));
+const standardsRoot = path.resolve(standardsRootArg ?? workbenchPaths().standards);
 const pack = loadDomain(configRoot(), domain);
 const template = packPath(pack.dir, `${pack.standards}/projects/PROJECT.template.md`);
 if (!fs.existsSync(template)) throw new Error(`No standards template for domain: ${domain}`);

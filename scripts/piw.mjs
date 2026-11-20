@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import { workbenchPaths } from "./workbench-paths.mjs";
 import { spawnSync } from 'node:child_process';
 import fs from 'node:fs';
 import os from 'node:os';
@@ -38,6 +39,7 @@ Usage:
   piw model-capabilities validate [path]
   piw check
   piw doctor
+  piw paths
   piw update [--check|--yes]
   piw run [pi arguments...]
   piw version
@@ -47,7 +49,7 @@ Usage:
 function loadProviderEnv(args) {
   const providerFlag = args.findIndex((value) => value === '--provider' || value.startsWith('--provider='));
   const provider = providerFlag >= 0 ? (args[providerFlag].includes('=') ? args[providerFlag].split('=', 2)[1] : args[providerFlag + 1]) : null;
-  const configDir = process.env.PI_WORKBENCH_CONFIG_DIR || path.join(process.env.HOME, '.config', 'pi-workbench', 'providers');
+  const configDir = workbenchPaths().providers;
   const files = provider ? [path.join(configDir, `${provider}.env`)] : (fs.existsSync(configDir) ? fs.readdirSync(configDir).filter((name) => name.endsWith('.env')).map((name) => path.join(configDir, name)) : []);
   const env = { ...process.env };
   for (const file of files) {
@@ -78,6 +80,10 @@ if (!group || group === 'help' || group === '--help' || group === '-h') {
 }
 if (group === 'version' || group === '--version' || group === '-v') {
   console.log(version);
+  process.exit(0);
+}
+if (group === 'paths' && !action) {
+  console.log(JSON.stringify(workbenchPaths(), null, 2));
   process.exit(0);
 }
 if (group === 'report') {

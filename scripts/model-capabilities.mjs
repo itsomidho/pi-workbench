@@ -1,13 +1,13 @@
 #!/usr/bin/env node
+import { workbenchPaths } from "./workbench-paths.mjs";
 import fs from 'node:fs';
-import os from 'node:os';
 import path from 'node:path';
 import readline from 'node:readline/promises';
 import { stdin as input, stdout as output } from 'node:process';
 
 const capabilities = ['planning', 'coding', 'debugging', 'review', 'qa', 'testing', 'security'];
 const tiers = ['standard', 'strong', 'expert'];
-const defaultFile = () => process.env.PI_MODEL_CAPABILITIES_FILE || path.join(process.env.HOME || os.homedir(), '.pi', 'model-capabilities.json');
+const defaultFile = () => workbenchPaths().modelCapabilities;
 const modelKey = value => /^[a-z][a-z0-9-]*\/[A-Za-z0-9][A-Za-z0-9._:-]*$/.test(value);
 
 function emptyStages() {

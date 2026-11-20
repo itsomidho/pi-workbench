@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import { workbenchPaths } from "./workbench-paths.mjs";
 import crypto from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
@@ -8,7 +9,7 @@ if (!command || !taskDirArg) {
   console.error('Usage: node scripts/task-artifacts.mjs <init|write|context> <task-dir> [stage] [summary]');
   process.exit(2);
 }
-const root = path.resolve(process.env.PI_TASKS_DIR ?? path.join(process.env.HOME ?? '.', '.pi/tasks'));
+const root = path.resolve(workbenchPaths().tasks);
 const taskDir = path.resolve(taskDirArg);
 if (!taskDir.startsWith(`${root}${path.sep}`) || !fs.existsSync(path.join(taskDir, 'TASK.md'))) {
   throw new Error(`Invalid task directory: ${taskDir}`);

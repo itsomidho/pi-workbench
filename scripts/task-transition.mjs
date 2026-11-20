@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import { workbenchPaths } from "./workbench-paths.mjs";
 import fs from 'node:fs';
 import path from 'node:path';
 
@@ -23,7 +24,7 @@ if (!identifier || !allowed.has(next)) {
 }
 const parts = identifier.split('/');
 if (parts.length !== 3 || !/^[a-z][a-z0-9-]*$/.test(parts[0]) || !/^[a-z][a-z0-9-]*$/.test(parts[1]) || !/^\d{4}-\d{2}-\d{2}-[a-z][a-z0-9-]*$/.test(parts[2])) throw new Error('Invalid task identifier');
-const root = path.resolve(process.env.PI_TASKS_DIR ?? path.join(process.env.HOME, '.pi/tasks'));
+const root = path.resolve(workbenchPaths().tasks);
 const file = path.resolve(root, parts[0], parts[1], parts[2], 'TASK.md');
 if (!file.startsWith(`${root}${path.sep}`) || !fs.existsSync(file)) throw new Error(`Task not found: ${file}`);
 let text = fs.readFileSync(file, 'utf8');

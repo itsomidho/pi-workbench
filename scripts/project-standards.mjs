@@ -1,3 +1,4 @@
+import { workbenchPaths } from "./workbench-paths.mjs";
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
@@ -6,7 +7,7 @@ function expandHome(value, home) {
   return value === '~' ? home : value.startsWith('~/') ? path.join(home, value.slice(2)) : value;
 }
 export function localStandardsRoot(home = process.env.HOME ?? os.homedir()) {
-  return path.resolve(expandHome(process.env.PI_STANDARDS_DIR ?? path.join(home, '.pi/standards'), home));
+  return workbenchPaths(process.env, home).standards;
 }
 
 // Only explicit identity fields count. Mentions in prose, old paths in comments,

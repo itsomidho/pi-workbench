@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+## 0.5.19 - 2026-11-20
+
+- Use XDG configuration and state paths for Workbench user files, preserve explicit overrides and legacy fallback without moving files, and expose effective locations with `piw paths`.
+
 ## 0.5.18 - 2026-11-20
 
 - Remove the provider-specific Tabdl guide and generalize public adapter and troubleshooting documentation to vendor-neutral provider placeholders.

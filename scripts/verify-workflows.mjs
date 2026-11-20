@@ -26,6 +26,8 @@ const required = [
   'scripts/tool-less-runtime.test.mjs',
   'scripts/model-capabilities.mjs',
   'scripts/model-capabilities.test.mjs',
+  'scripts/workbench-paths.mjs',
+  'scripts/workbench-paths.test.mjs',
   'scripts/domains.mjs',
   'scripts/domain-cli.mjs',
   'extensions/domain-discovery.ts',

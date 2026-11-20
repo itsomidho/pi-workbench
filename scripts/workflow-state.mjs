@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import { workbenchPaths } from "./workbench-paths.mjs";
 import fs from 'node:fs';
 import path from 'node:path';
 
@@ -7,7 +8,7 @@ if (!taskDirArg || !patchJson) {
   console.error('Usage: node scripts/workflow-state.mjs <task-directory> <json-patch>');
   process.exit(2);
 }
-const root = path.resolve(process.env.PI_TASKS_DIR ?? path.join(process.env.HOME ?? '.', '.pi/tasks'));
+const root = path.resolve(workbenchPaths().tasks);
 const taskDir = path.resolve(taskDirArg);
 if (!taskDir.startsWith(`${root}${path.sep}`) || !fs.existsSync(path.join(taskDir, 'TASK.md'))) throw new Error(`Invalid task directory: ${taskDir}`);
 const file = path.join(taskDir, 'artifacts', 'state.json');

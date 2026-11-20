@@ -13,7 +13,7 @@ Never modify the working tree: no `git checkout`, `git pull`, or `glab mr checko
 
 ## 1. Resolve the project
 
-Use the bundled startup procedure in `../../standards/README.md` relative to this skill. The local standards root defaults to `$HOME/.pi/standards` when PI_STANDARDS_DIR is unset. Each project has a private file in `$PI_STANDARDS_DIR/wordpress/projects/`: local path, GitLab path, first-party scope, text domains, PHP floors, and project facts. Project names are local configuration and are not bundled here.
+Use the bundled startup procedure in `../../standards/README.md` relative to this skill. Use `piw paths` to resolve the effective local standards root. Each project has a private file in `$PI_STANDARDS_DIR/wordpress/projects/`: local path, GitLab path, first-party scope, text domains, PHP floors, and project facts. Project names are local configuration and are not bundled here.
 
 - If the user named the repo, use it. Otherwise match the current directory's `git remote get-url origin` against the GitLab paths in those files.
 - If neither gives a repo, ask which one.
