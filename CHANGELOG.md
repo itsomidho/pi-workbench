@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+## 0.5.20 - 2026-11-20
+
+- Show the actual saved model capability policy after initialization instead of a static example.
+- Isolate router tests from the user's saved model capability policy.
+
 ## 0.5.19 - 2026-11-20
 
 - Use XDG configuration and state paths for Workbench user files, preserve explicit overrides and legacy fallback without moving files, and expose effective locations with `piw paths`.

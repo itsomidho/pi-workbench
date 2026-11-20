@@ -11,6 +11,10 @@ async function harness(t, initialRole) {
   const keys = ['PI_ROUTER_ROLE', 'PI_ROUTER_PROVIDER', 'PI_ROUTER_MODEL', 'PI_ROUTER_TRACE', 'PI_ROUTER_COMPLEXITY', 'PI_MODEL_CAPABILITIES_FILE'];
   const original = Object.fromEntries(keys.map(key => [key, process.env[key]]));
   for (const key of keys) delete process.env[key];
+  const policyDir = fs.mkdtempSync(path.join(os.tmpdir(), 'pi-router-policy-'));
+  t.after(() => fs.rmSync(policyDir, { recursive: true, force: true }));
+  // Keep the default account policy out of tests that use synthetic models.
+  process.env.PI_MODEL_CAPABILITIES_FILE = path.join(policyDir, 'model-capabilities.json');
   if (initialRole !== undefined) process.env.PI_ROUTER_ROLE = initialRole;
   t.after(() => {
     for (const key of keys) {

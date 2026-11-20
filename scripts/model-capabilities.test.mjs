@@ -8,7 +8,7 @@ import test from 'node:test';
 const root = path.resolve(new URL('..', import.meta.url).pathname);
 const cli = path.join(root, 'scripts', 'model-capabilities.mjs');
 
-test('interactive capability policy init creates a restricted non-Tabdl policy', t => {
+test('interactive capability policy init displays the exact policy it saves', t => {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'pi-model-capabilities-'));
   t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
   const file = path.join(dir, 'model-capabilities.json');
@@ -21,11 +21,12 @@ test('interactive capability policy init creates a restricted non-Tabdl policy',
     '', '', '', '', '', '', 
   ].join('\n') + '\n';
   const output = execFileSync(process.execPath, [cli, 'init', file], { input, encoding: 'utf8' });
-  assert.match(output, /Sample structure/);
-  assert.match(output, /provider-a\/model-id/);
-  assert.match(output, /provider-b\/model-id/);
-  assert.equal(output.toLowerCase().includes('tabdl'), false);
-  const policy = JSON.parse(fs.readFileSync(file, 'utf8'));
+  const saved = fs.readFileSync(file, 'utf8');
+  const heading = '\nSaved policy:\n';
+  assert.ok(output.includes(heading), 'init should label the actual saved policy');
+  assert.equal(output.split(heading)[1], saved);
+  assert.doesNotMatch(output, /Sample structure/);
+  const policy = JSON.parse(saved);
   assert.equal(policy.version, 1);
   assert.equal(policy.defaults.allowUnlistedModels, false);
   assert.deepEqual(policy.models['openai-codex/gpt-5'].capabilities, ['planning', 'coding', 'review']);

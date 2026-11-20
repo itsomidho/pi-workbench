@@ -31,7 +31,7 @@ Consumer installs use a GitHub release archive. No clone and no `.git` directory
 ```bash
 export PI_WORKBENCH_HOME="$HOME/.pi-workbench"
 mkdir -p "$PI_WORKBENCH_HOME"
-curl -L https://github.com/itsomidho/pi-workbench/archive/refs/tags/v0.5.19.tar.gz \
+curl -L https://github.com/itsomidho/pi-workbench/archive/refs/tags/v0.5.20.tar.gz \
   | tar -xz --strip-components=1 -C "$PI_WORKBENCH_HOME"
 cd "$PI_WORKBENCH_HOME"
 ./scripts/install.sh
@@ -45,7 +45,7 @@ Fish equivalent:
 ```fish
 set -gx PI_WORKBENCH_HOME "$HOME/.pi-workbench"
 mkdir -p "$PI_WORKBENCH_HOME"
-curl -L https://github.com/itsomidho/pi-workbench/archive/refs/tags/v0.5.19.tar.gz \
+curl -L https://github.com/itsomidho/pi-workbench/archive/refs/tags/v0.5.20.tar.gz \
   | tar -xz --strip-components=1 -C "$PI_WORKBENCH_HOME"
 cd "$PI_WORKBENCH_HOME"
 ./scripts/install.sh

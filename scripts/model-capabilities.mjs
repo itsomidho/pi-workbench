@@ -13,28 +13,6 @@ const modelKey = value => /^[a-z][a-z0-9-]*\/[A-Za-z0-9][A-Za-z0-9._:-]*$/.test(
 function emptyStages() {
   return Object.fromEntries(capabilities.map(capability => [capability, []]));
 }
-function samplePolicy() {
-  return {
-    version: 1,
-    defaults: { allowUnlistedModels: false },
-    models: {
-      'provider-a/model-id': { enabled: true, capabilities: ['planning', 'coding', 'testing'], tier: 'strong' },
-      'provider-b/model-id': { enabled: true, capabilities: ['planning', 'debugging', 'review', 'qa', 'security'], tier: 'expert' },
-    },
-    stages: {
-      planning: ['provider-a/model-id', 'provider-b/model-id'],
-      coding: ['provider-a/model-id'],
-      debugging: ['provider-b/model-id'],
-      review: ['provider-b/model-id'],
-      qa: ['provider-b/model-id'],
-      testing: ['provider-a/model-id'],
-      security: ['provider-b/model-id'],
-    },
-  };
-}
-function muted(value) {
-  return process.stdout.isTTY ? `\x1b[2m${value}\x1b[22m` : value;
-}
 function normalize(raw) {
   const models = raw?.models ?? raw;
   if (!raw || typeof raw !== 'object' || Array.isArray(raw) || typeof models !== 'object' || Array.isArray(models)) throw new Error('Capability policy must be an object with a models object.');
@@ -60,9 +38,9 @@ function normalize(raw) {
 function readPolicy(file) {
   return normalize(JSON.parse(fs.readFileSync(file, 'utf8')));
 }
-function writePolicy(file, policy) {
+function writePolicy(file, contents) {
   fs.mkdirSync(path.dirname(file), { recursive: true, mode: 0o700 });
-  fs.writeFileSync(file, `${JSON.stringify(policy, null, 2)}\n`, { mode: 0o600 });
+  fs.writeFileSync(file, contents, { mode: 0o600 });
   fs.chmodSync(file, 0o600);
 }
 function usage() {
@@ -114,9 +92,10 @@ try {
     if (value) stages[capability] = value.split(',').map(model => model.trim()).filter(Boolean);
   }
   const policy = normalize({ version: 1, defaults: { allowUnlistedModels: false }, models, stages });
-  writePolicy(file, policy);
+  const contents = `${JSON.stringify(policy, null, 2)}\n`;
+  writePolicy(file, contents);
   console.log(`Created ${file}`);
-  console.log(muted(`\nSample structure (replace placeholder model IDs with your approved models):\n${JSON.stringify(samplePolicy(), null, 2)}`));
+  output.write(`\nSaved policy:\n${contents}`);
 } catch (error) {
   console.error(`Could not create capability policy: ${error.message}`);
   process.exitCode = 2;

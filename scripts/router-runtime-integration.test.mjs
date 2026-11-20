@@ -12,7 +12,7 @@ for (const scenario of ['fallback', 'exhausted']) test(`real Pi router ${scenari
   const agent = path.join(dir, 'agent'); fs.mkdirSync(agent);
   fs.writeFileSync(path.join(agent, 'settings.json'), JSON.stringify({ retry: { enabled: true, maxRetries: 4, baseDelayMs: 1 } }));
   const log = path.join(dir, 'dispatch.jsonl');
-  const env = { ...process.env, PI_CODING_AGENT_DIR: agent, PI_ROUTER_ROLE: 'think', PI_MOCK_ROUTER_SCENARIO: scenario, PI_MOCK_ROUTER_LOG: log, PI_OFFLINE: '1' };
+  const env = { ...process.env, PI_CODING_AGENT_DIR: agent, PI_MODEL_CAPABILITIES_FILE: path.join(dir, 'model-capabilities.json'), PI_ROUTER_ROLE: 'think', PI_MOCK_ROUTER_SCENARIO: scenario, PI_MOCK_ROUTER_LOG: log, PI_OFFLINE: '1' };
   delete env.PI_ROUTER_PROVIDER; delete env.PI_ROUTER_MODEL;
   const result = spawnSync('pi', ['-ne', '-e', './scripts/mock-router-extension.mjs', '-e', './extensions/model-router.ts', '--model', 'router/auto', '--models', 'router-fixture/*', '--no-tools', '--no-mcp', '--no-context-files', '--no-session', '--mode', 'json', '-p', 'Return the router fixture result.'], { cwd: root, env, encoding: 'utf8', timeout: 20000 });
   assert.ifError(result.error);
