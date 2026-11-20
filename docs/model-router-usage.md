@@ -2,6 +2,21 @@
 
 Pi Workbench provides the virtual model `router/auto`. It selects a physical model from Pi's currently available providers and adapters.
 
+## Workbench commands
+
+| Command | Purpose |
+| --- | --- |
+| `piw run [Pi arguments…]` | Start Pi in the current project using `router/auto` by default. |
+| `piw run --models 'provider/model-a,provider/model-b'` | Limit the models available in this session. |
+| `piw run --model provider/model-id` | Select one physical model directly. |
+| `piw run --list-models [search]` | List available models and exit. |
+| `piw model-capabilities init [path] [--force]` | Create a policy interactively and print the saved JSON. To replace a file, specify its path before `--force`. |
+| `piw model-capabilities list [path]` | Display saved models and stage allowlists. |
+| `piw model-capabilities validate [path]` | Check policy structure without contacting providers. |
+| `piw model-capabilities help` | Print policy command help. |
+| `/router-role <role> [complexity]` | Set routing requirements for the next routed request. |
+| `/router-status` | Show the active role, selection, and last physical response model. |
+
 ## Normal usage
 
 ```fish
@@ -20,7 +35,8 @@ piw run --list-models
 Run one known model directly:
 
 ```fish
-piw run --provider openai-codex --model <model-id>
+# Replace provider-a/model-id with an exact catalog entry.
+piw run --model provider-a/model-id
 ```
 
 ## Role requirements
@@ -97,11 +113,28 @@ The example below is for reference only; `init` saves your choices, not these pl
 
 When a stage allowlist exists, the router only considers those models. Otherwise, when candidates declare capabilities, it only considers models declaring the requested stage capability. The policy uses exact `provider/model` keys and is never fetched or modified by Workbench. Without it, the router still enforces Pi's reasoning/tools/vision/context metadata but cannot prove that a model is especially good at coding or planning.
 
+## Session model scope
+
+`piw run` forwards `--models` to Pi. This option limits the models available to the session; it does not edit the saved policy or set priority. Use a comma-separated list with exact provider/model IDs for predictable results. Pi also accepts fuzzy names and glob patterns.
+
+```bash
+# Show the current catalog without starting a chat.
+piw run --list-models
+
+# Scope this session; replace the sample IDs with your approved models.
+piw run --models 'provider-a/model-id,provider-b/model-id'
+
+# Select a single physical model directly instead of using the router.
+piw run --model provider-a/model-id
+```
+
+With `router/auto`, the effective candidates are the available models in the session scope that are permitted by the saved policy and meet the current role and complexity requirements. For example, a model allowed only for planning cannot be selected for coding just because it is in `--models`. Include each intended fallback in the scope; Pi must schedule a retry before the router tries an alternative. If no scope is supplied, the router starts from Pi's available catalog. Check the active role with `/router-status` and use `PI_ROUTER_TRACE=1` to see selections.
+
 ## Restrict selection
 
 ```fish
 PI_ROUTER_PROVIDER=openai-codex piw run
-PI_ROUTER_MODEL=<model-id> piw run
+PI_ROUTER_MODEL=provider-a/model-id piw run
 PI_ROUTER_TRACE=1 piw run
 ```
 
@@ -129,15 +162,17 @@ Workbench excludes every failed candidate in the current retry chain and resets 
 2. Confirm the live catalog:
 
    ```fish
-   piw adapter health <provider>
-   piw adapter models <provider>
+   # Replace example with the configured adapter name.
+   piw adapter health example
+   piw adapter models example
    piw run --list-models
    ```
 
 3. Run one model directly:
 
    ```fish
-   piw run --provider <provider> --model <model-id>
+   # Replace provider-a/model-id with the exact ID to test.
+   piw run --model provider-a/model-id
    ```
 
 4. Retry `router/auto` with tracing:

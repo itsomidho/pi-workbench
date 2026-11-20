@@ -4,18 +4,110 @@ Pi Workbench is a portable workflow layer for [Pi](https://github.com/earendil-w
 
 Pi remains the runtime. Workbench does not bundle a model vendor, copy credentials into projects, or replace Pi's model and extension system.
 
-## What to use
+## Command reference
 
-| Need | Command |
+Angle brackets mark required values; square brackets mark optional arguments. Replace placeholders before running a command. A `<task-id>` is `domain/project/YYYY-MM-DD-slug`; a `<task-directory>` is a filesystem path.
+
+### Installation and diagnostics
+
+| Command | Purpose |
 | --- | --- |
-| Install or update Workbench | `./scripts/install.sh` or `piw update --yes` |
-| Check the installation | `piw doctor` and `piw check` |
-| Configure a provider | `piw adapter configure <name>` |
-| See provider models | `piw adapter models <name>` |
-| Run Pi with saved provider credentials | `piw run ...` |
-| Let Workbench choose a capable model | `piw run` |
-| Configure model stage allowlists | `piw model-capabilities <init|list|validate>` |
-| Start a task | `/think`, approval, then `go` inside Pi |
+| `./scripts/install.sh [--install-dependencies]` | Install Workbench; dependency bootstrap is opt-in. |
+| `piw help` | Show shell command help (`--help` and `-h` also work). |
+| `piw version` | Show the installed version (`--version` and `-v` also work). |
+| `piw doctor` | Diagnose the local installation. |
+| `piw check` | Validate the bundled Workbench files. |
+| `piw paths` | Print effective XDG, override, and legacy paths. |
+| `piw update [--check or --yes]` | Inspect or update an archive installation; `--yes` applies the update. |
+
+### Pi and model routing
+
+| Command | Purpose |
+| --- | --- |
+| `piw run [Pi arguments…]` | Start Pi in the current project using `router/auto` by default. |
+| `piw run --models 'provider/model-a,provider/model-b'` | Limit the models available in this session. |
+| `piw run --model provider/model-id` | Select one physical model directly. |
+| `piw run --list-models [search]` | List available models and exit. |
+| `piw model-capabilities help` | Show policy command help. |
+| `piw model-capabilities init [path] [--force]` | Create a policy interactively and print the saved JSON. To replace a file, specify its path before `--force`. |
+| `piw model-capabilities list [path]` | Display saved models and stage allowlists. |
+| `piw model-capabilities validate [path]` | Check policy structure without contacting providers. |
+
+### Provider adapters
+
+| Command | Purpose |
+| --- | --- |
+| `piw adapter help` | Show adapter command help. |
+| `piw adapter create <name> [destination]` | Generate an adapter package. |
+| `piw adapter check <path>` | Validate a local adapter package. |
+| `piw adapter install <path>` | Install and register an adapter. |
+| `piw adapter configure <provider>` | Save the provider’s local connection settings. |
+| `piw adapter health <provider>` | Check endpoint connectivity and authentication. |
+| `piw adapter models <provider>` | Query the adapter catalog. |
+| `piw adapter list` | List providers with saved environment files. |
+| `piw adapter remove <provider>` | Delete the local provider environment file; the adapter package stays installed. |
+
+### Domains and project standards
+
+| Command | Purpose |
+| --- | --- |
+| `piw domain list` | List installed domain packs. |
+| `piw domain check` | Validate manifests and resources. |
+| `piw domain detect [project-directory]` | Inspect the specified component (defaults to the current directory). |
+| `piw init <domain> <project> [standards-root]` | Create a local project standards file from the domain template. |
+| `piw init-from-think <domain> <project> <slug> <think-note>` | Create a planning task from a Think note; this does not approve or start it. |
+
+### Tasks and reports
+
+| Command | Purpose |
+| --- | --- |
+| `piw task create <domain> <project> <slug> <title>` | Create a task in planning state. |
+| `piw task list` | List local tasks and statuses. |
+| `piw task status <task-id> <next-status>` | Alias for `piw task transition`; it changes status, not just displays it. |
+| `piw task transition <task-id> <next-status>` | Apply an allowed lifecycle transition. |
+| `piw task approve <task-id>` | Record explicit approval of the current plan. |
+| `piw task artifacts init <task-directory>` | Initialize missing artifact context. |
+| `piw task artifacts context <task-directory> <NN-stage>` | Print shared context and the latest brief; the CLI currently requires a stage argument. |
+| `piw task artifacts write <task-directory> <NN-stage> <summary>` | Write a manual stage brief; not a managed handoff. |
+| `piw report init <slug> <title>` | Create a main-session report workspace. |
+| `piw report generate <task-directory> [status] [details.json]` | Write Markdown, JSON, and HTML reports. |
+
+### Inside Pi
+
+| Command | Purpose |
+| --- | --- |
+| `/think <request>` | Discuss and approve a plan. |
+| `/think list` | List saved Think topics. |
+| `/think resume [slug]` | Resume a saved Think topic. |
+| `/development <request>` | Plan development using the detected domain. |
+| `/skill:<name> [arguments]` | Load an installed skill by name. The bundled names are listed below. |
+| `go` | Start the exact already-approved managed task if identified in the latest handoff; otherwise pass through as chat. |
+| `/router-role <role> [complexity]` | Set routing requirements for the next routed request. |
+| `/router-status` | Show the active role, selection, and last physical response model. |
+| `/task-go <task-id>` | Start an explicitly identified approved managed task. |
+| `/task-go-stop` | Stop after the current turn. |
+| `/task-go-resume [task-id]` | Resume the persisted workflow; an ID, if given, must match. |
+| `/task-list` | List local tasks in Pi. |
+| `/task-init <domain> <project> <slug> <title>` | Create a task in Pi. |
+| `/task-status <task-id> <next-status>` | Apply a lifecycle transition. |
+| `/task-approve <task-id>` | Record explicit approval of the plan. |
+| `/task-start <task-id> <stage>` | Set up a named manual stage and report template. |
+| `/task-run <task-id> <stage>` | Run a named manual stage with the active model. |
+| `/task-report <task-id> <NN-step> <summary>` | Create a numbered local report. |
+| `/reload` | Reload Pi resources and extensions. |
+
+### Bundled skills inside Pi
+
+| Area | Commands |
+| --- | --- |
+| Think | `/skill:think`, `/skill:think-advisor` |
+| Django | `/skill:django-guide`, `/skill:django-development` |
+| Laravel | `/skill:laravel-guide`, `/skill:laravel-development` |
+| Next.js | `/skill:nextjs-guide`, `/skill:nextjs-development` |
+| Nuxt | `/skill:nuxt-guide`, `/skill:nuxt-development` |
+| WordPress | `/skill:wordpress-guide`, `/skill:wordpress-development`, `/skill:merge-request-review` |
+
+`piw run` forwards other supported Pi options. Run `piw run --help` for Pi's complete flag reference. See [domain and task commands](docs/domains.md#workbench-commands) and [model selection examples](docs/model-router-usage.md#session-model-scope) for details.
 
 ## Requirements
 
@@ -31,7 +123,7 @@ Consumer installs use a GitHub release archive. No clone and no `.git` directory
 ```bash
 export PI_WORKBENCH_HOME="$HOME/.pi-workbench"
 mkdir -p "$PI_WORKBENCH_HOME"
-curl -L https://github.com/itsomidho/pi-workbench/archive/refs/tags/v0.5.20.tar.gz \
+curl -L https://github.com/itsomidho/pi-workbench/archive/refs/tags/v0.5.21.tar.gz \
   | tar -xz --strip-components=1 -C "$PI_WORKBENCH_HOME"
 cd "$PI_WORKBENCH_HOME"
 ./scripts/install.sh
@@ -45,7 +137,7 @@ Fish equivalent:
 ```fish
 set -gx PI_WORKBENCH_HOME "$HOME/.pi-workbench"
 mkdir -p "$PI_WORKBENCH_HOME"
-curl -L https://github.com/itsomidho/pi-workbench/archive/refs/tags/v0.5.20.tar.gz \
+curl -L https://github.com/itsomidho/pi-workbench/archive/refs/tags/v0.5.21.tar.gz \
   | tar -xz --strip-components=1 -C "$PI_WORKBENCH_HOME"
 cd "$PI_WORKBENCH_HOME"
 ./scripts/install.sh
@@ -69,7 +161,6 @@ Run updates outside the project directory so an update cannot be confused by a d
 ```fish
 cd "$HOME"
 piw update --yes
-hash -r
 piw version
 ```
 
@@ -84,11 +175,19 @@ cd "$HOME/projects/my-project"
 piw run
 ```
 
-Use a specific provider and model:
+Use a specific provider and model (replace the sample ID):
 
 ```fish
-piw run --provider openai-codex --model <model-id>
+piw run --model provider-a/model-id
 ```
+
+Limit the models available to the router for this session (replace both model IDs):
+
+```bash
+piw run --models 'provider-a/model-id,provider-b/model-id'
+```
+
+The saved policy still filters these candidates by stage. `--models` does not edit that policy or set priority. See [session model scope](docs/model-router-usage.md#session-model-scope).
 
 List models from configured adapters:
 
@@ -162,7 +261,7 @@ piw init wordpress my-site
 piw task create wordpress my-site seo-fix "Fix SEO metadata"
 ```
 
-Inside Pi, use `/think` to produce a plan. Approve the plan explicitly, then start the managed workflow:
+Inside Pi, use `/think` to produce a plan and approve it explicitly. For a prepared managed handoff that identifies an already-approved task, type `go`. If no eligible handoff exists, use the explicit command after approval:
 
 ```text
 /task-go wordpress/my-site/<date-slug>

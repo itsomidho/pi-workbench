@@ -1,5 +1,44 @@
 # Domain packs and Think routing
 
+## Workbench commands
+
+| Command | Purpose |
+| --- | --- |
+| `piw domain list` | List installed domain packs. |
+| `piw domain check` | Validate manifests and resources. |
+| `piw domain detect [project-directory]` | Inspect the specified component (defaults to the current directory). |
+| `piw init <domain> <project> [standards-root]` | Create a local project standards file from the domain template. |
+| `piw init-from-think <domain> <project> <slug> <think-note>` | Create a planning task from a Think note; this does not approve or start it. |
+| `piw task create <domain> <project> <slug> <title>` | Create a task in planning state. |
+| `piw task list` | List local tasks and statuses. |
+| `piw task status <task-id> <next-status>` | Alias for `piw task transition`; it changes status, not just displays it. |
+| `piw task transition <task-id> <next-status>` | Apply an allowed lifecycle transition. |
+| `piw task approve <task-id>` | Record explicit approval of the current plan. |
+| `piw task artifacts init <task-directory>` | Initialize missing artifact context. |
+| `piw task artifacts context <task-directory> <NN-stage>` | Print shared context and the latest saved brief; the CLI currently requires a stage argument. |
+| `piw task artifacts write <task-directory> <NN-stage> <summary>` | Write a manual stage brief; not a managed handoff. |
+| `/think <request>` | Discuss and approve a plan. |
+| `/think list` | List saved Think topics. |
+| `/think resume [slug]` | Resume a saved Think topic. |
+| `/development <request>` | Plan development using the detected domain. |
+| `/skill:<name> [arguments]` | Load an installed skill by its frontmatter name. |
+| `go` | Start the exact already-approved managed task if identified in the latest handoff; otherwise pass through as chat. |
+| `/task-go <task-id>` | Start an explicitly identified approved managed task. |
+| `/task-go-stop` | Stop after the current turn. |
+| `/task-go-resume [task-id]` | Resume the persisted workflow; an ID, if given, must match. |
+| `/task-list` | List local tasks in Pi. |
+| `/task-init <domain> <project> <slug> <title>` | Create a task in Pi. |
+| `/task-status <task-id> <next-status>` | Apply a lifecycle transition. |
+| `/task-approve <task-id>` | Record explicit approval of the plan. |
+| `/task-start <task-id> <stage>` | Set up a named manual stage and report template. |
+| `/task-run <task-id> <stage>` | Run a named manual stage with the active model. |
+| `/task-report <task-id> <NN-step> <summary>` | Create a numbered local report. |
+| `/reload` | Reload Pi resources and extensions. |
+
+Bundled skill commands use `/skill:think`, `/skill:think-advisor`, `/skill:merge-request-review`, and `/skill:<domain>-guide` or `/skill:<domain>-development` for `wordpress`, `laravel`, `django`, `nextjs`, and `nuxt`. Skills provide instructions, not a permission grant. Review or posting operations still require explicit authorization.
+
+`<task-id>` means `domain/project/YYYY-MM-DD-slug`. Manual stage names: `plan`, `implement`, `review`, `fix`, `qa`, `test`, `audit`, `finish`. Lifecycle statuses are `planning`, `awaiting-approval`, `implementing`, `reviewing`, `fixing`, `qa`, `testing`, `auditing`, `finishing`, `done`, and `blocked`; only supported transitions are accepted. Use one execution mode at a time: manual stages do not replace managed handoffs.
+
 ## The flow
 
 ```text

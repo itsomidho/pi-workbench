@@ -1,5 +1,21 @@
 # Installation and updates
 
+## Workbench commands
+
+| Command | Purpose |
+| --- | --- |
+| `./scripts/install.sh [--install-dependencies]` | Install Workbench; dependency bootstrap is opt-in. |
+| `piw help` | Show shell command help (`--help` and `-h` also work). |
+| `piw version` | Show the installed version (`--version` and `-v` also work). |
+| `piw doctor` | Diagnose the local installation. |
+| `piw check` | Validate the bundled Workbench files. |
+| `piw paths` | Print effective XDG, override, and legacy paths. |
+| `piw update [--check or --yes]` | Inspect or update an archive installation; `--yes` applies the update. |
+| `piw run [Pi arguments…]` | Start Pi in the current project using `router/auto` by default. |
+| `pi list` | Show packages registered with Pi. |
+
+`piw update` without flags reports available versions; use `--check` for a check-only exit and `--yes` to apply. Git-linked source installations are updated with Git, not `piw update`.
+
 ## Choose a mode
 
 | Mode | Use when | Git required? |
@@ -15,7 +31,7 @@ A release archive installs the application without repository metadata:
 ```fish
 set -gx PI_WORKBENCH_HOME "$HOME/.pi-workbench"
 mkdir -p "$PI_WORKBENCH_HOME"
-curl -L https://github.com/itsomidho/pi-workbench/archive/refs/tags/v0.5.20.tar.gz \
+curl -L https://github.com/itsomidho/pi-workbench/archive/refs/tags/v0.5.21.tar.gz \
   | tar -xz --strip-components=1 -C "$PI_WORKBENCH_HOME"
 cd "$PI_WORKBENCH_HOME"
 ./scripts/install.sh
@@ -40,7 +56,6 @@ Review that script before using it on a machine you do not control.
 cd "$HOME"
 piw update --check
 piw update --yes
-hash -r
 piw version
 ```
 

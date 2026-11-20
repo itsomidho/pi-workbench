@@ -2,6 +2,20 @@
 
 Workflows request role capabilities, not hardcoded vendor/model identities. `extensions/model-router.ts` implements the current selection policy; `docs/model-router-usage.md` documents commands and runtime verification.
 
+## Workbench commands
+
+| Command | Purpose |
+| --- | --- |
+| `piw run [Pi arguments…]` | Start Pi in the current project using `router/auto` by default. |
+| `piw run --models 'provider/model-a,provider/model-b'` | Limit the models available in this session. |
+| `piw model-capabilities init [path] [--force]` | Create a policy interactively and print the saved JSON. To replace a file, specify its path before `--force`. |
+| `piw model-capabilities list [path]` | Display saved models and stage allowlists. |
+| `piw model-capabilities validate [path]` | Check policy structure without contacting providers. |
+| `/router-role <role> [complexity]` | Set routing requirements for the next routed request. |
+| `/router-status` | Show the active role, selection, and last physical response model. |
+
+See [the session-scope examples](model-router-usage.md#session-model-scope) for the difference between listing, scoping, and selecting a model.
+
 ## Current behavior
 
 - Use the session's scoped models when provided, otherwise Pi's available model catalog. Provider adapters expose connectivity, credentials, catalog metadata, and health, not workflow policy.

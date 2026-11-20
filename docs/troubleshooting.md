@@ -1,5 +1,26 @@
 # Troubleshooting
 
+## Workbench commands
+
+| Command | Purpose |
+| --- | --- |
+| `piw version` | Show the installed version (`--version` and `-v` also work). |
+| `piw doctor` | Diagnose the local installation. |
+| `piw check` | Validate the bundled Workbench files. |
+| `piw paths` | Print effective XDG, override, and legacy paths. |
+| `pi list` | Check what Pi packages are registered. |
+| `piw run --list-models [search]` | List available models and exit. |
+| `piw run --models 'provider/model-a,provider/model-b'` | Limit the models available in this session. |
+| `piw model-capabilities validate [path]` | Check policy structure without contacting providers. |
+| `piw adapter check <path>` | Validate a local adapter package. |
+| `piw adapter install <path>` | Install and register an adapter. |
+| `piw adapter configure <provider>` | Save the provider’s local connection settings. |
+| `piw adapter health <provider>` | Check endpoint connectivity and authentication. |
+| `piw adapter models <provider>` | Query the adapter catalog. |
+| `piw adapter list` | List providers with saved environment files. |
+| `/router-status` | Show the active role, selection, and last physical response model. |
+| `/reload` | Reload Pi resources and extensions. |
+
 ## First checks
 
 Run these from a stable directory such as `$HOME` or the project directory:
@@ -12,21 +33,17 @@ pi list
 piw run --list-models
 ```
 
-For a configured provider adapter:
+For a configured provider adapter (replace `example` with its name):
 
 ```fish
-piw adapter check "$HOME/.pi-adapters/pi-<provider>"
-piw adapter health <provider>
-piw adapter models <provider>
+piw adapter check "$HOME/.pi-adapters/pi-example"
+piw adapter health example
+piw adapter models example
 ```
 
 ## `piw` is not found
 
-Refresh the shell command cache:
-
-```fish
-hash -r
-```
+Start a new shell, or run `hash -r` if you use Bash.
 
 Then verify:
 
@@ -39,11 +56,11 @@ If the command is still absent, rerun the Workbench installer from `$HOME/.pi-wo
 
 ## `Unknown provider`
 
-The adapter package is not registered or Pi has not been restarted:
+The adapter package may not be registered, or Pi may need a restart. Replace `example` with the adapter name:
 
 ```fish
-piw adapter check "$HOME/.pi-adapters/pi-<provider>"
-piw adapter install "$HOME/.pi-adapters/pi-<provider>"
+piw adapter check "$HOME/.pi-adapters/pi-example"
+piw adapter install "$HOME/.pi-adapters/pi-example"
 pi list
 ```
 

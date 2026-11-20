@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+## 0.5.21 - 2026-11-20
+
+- Add a complete Workbench command index to the README and topic-specific command references to the guides, including session model scope and its interaction with saved routing policy.
+
 ## 0.5.20 - 2026-11-20
 
 - Show the actual saved model capability policy after initialization instead of a static example.

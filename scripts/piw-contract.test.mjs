@@ -15,6 +15,31 @@ test('piw exposes help and version', () => {
   assert.equal(execFileSync(process.execPath, [cli, 'version'], { encoding: 'utf8' }).trim(), JSON.parse(fs.readFileSync(new URL('../package.json', import.meta.url), 'utf8')).version);
 });
 
+test('public command reference covers CLI help and registered Pi commands', () => {
+  const read = name => fs.readFileSync(new URL(`../${name}`, import.meta.url), 'utf8');
+  const readme = read('README.md');
+  const rows = [...readme.matchAll(/^\| `([^`]+)` \|/gm)].map(match => match[1]);
+  const hasRow = command => rows.some(row => row === command || row.startsWith(`${command} `));
+  const help = execFileSync(process.execPath, [cli, 'help'], { encoding: 'utf8' });
+  for (const [, command] of help.matchAll(/^  (piw [^<\[\n]+)/gm)) {
+    assert.ok(hasRow(command.trim()), `Missing README command: ${command.trim()}`);
+  }
+  for (const file of ['model-router', 'task-workflow', 'workflow-orchestrator']) {
+    for (const [, command] of read(`extensions/${file}.ts`).matchAll(/registerCommand\("([a-z-]+)"/g)) {
+      assert.ok(hasRow(`/${command}`), `Missing README command: /${command}`);
+    }
+  }
+  for (const name of fs.readdirSync(new URL('../docs/', import.meta.url)).filter(name => name.endsWith('.md'))) {
+    assert.match(read(`docs/${name}`), /^## Workbench commands\n/m, name);
+  }
+  const usage = read('docs/model-router-usage.md');
+  assert.match(usage, /^## Session model scope$/m);
+  for (const flag of ['--models', '--model', '--list-models']) {
+    assert.ok(hasRow(`piw run ${flag}`), `Missing README option: ${flag}`);
+    assert.ok(usage.includes(`piw run ${flag}`), `Missing router guide option: ${flag}`);
+  }
+});
+
 test('archive updater refuses Git checkouts before reading release metadata', t => {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'piw source update-'));
   t.after(() => fs.rmSync(dir, { recursive: true, force: true }));

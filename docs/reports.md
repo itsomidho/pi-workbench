@@ -18,6 +18,21 @@ Each report is one normalized evidence model, saved in three formats:
 
 The schema is `schemas/task-report.schema.json`. JSON, Markdown, and HTML are generated from the same model; do not maintain separate narrative reports by hand. Source inputs remain the task, shared context, stage handoffs, and coordinator-supplied details. Regeneration reads those inputs again; it does not parse edits to FINAL.md or final.html.
 
+## Workbench commands
+
+| Command | Purpose |
+| --- | --- |
+| `piw task approve <task-id>` | Record explicit approval of the current plan. |
+| `piw task artifacts init <task-directory>` | Initialize missing artifact context. |
+| `piw task artifacts context <task-directory> <NN-stage>` | Print shared context and the latest saved brief; the CLI currently requires a stage argument. |
+| `piw task artifacts write <task-directory> <NN-stage> <summary>` | Write a manual stage brief; not a managed handoff. |
+| `piw report init <slug> <title>` | Create a main-session report workspace. |
+| `piw report generate <task-directory> [status] [details.json]` | Write Markdown, JSON, and HTML reports. |
+| `piw task transition <task-id> <next-status>` | Apply an allowed lifecycle transition. |
+| `/task-report <task-id> <NN-step> <summary>` | Create a numbered local report. |
+
+A report status is `completed`, `blocked`, `stopped`, or `in-progress`, distinct from the task lifecycle. To supply a custom details file, include the status before its path.
+
 ## Contents and presentation
 
 Reports cover the issue/goal, recorded plan approval, decisions/deviations, changed files and explanations, verification, acceptance criteria, findings, risks, follow-up work, delivery, stage summaries, and recorded usage.
@@ -112,8 +127,9 @@ This returns a new task directory under `$PI_TASKS_DIR/general/main-session/<dat
 After real approval, the coordinator records the brief, approved plan, constraints, and acceptance criteria, and can use the existing approval commands:
 
 ```bash
-piw task transition general/main-session/<date>-fix-search awaiting-approval
-piw task approve general/main-session/<date>-fix-search
+# Replace YYYY-MM-DD with the date in the generated directory name.
+piw task transition 'general/main-session/YYYY-MM-DD-fix-search' awaiting-approval
+piw task approve 'general/main-session/YYYY-MM-DD-fix-search'
 ```
 
 Then perform only the approved main-session work. Maintain report details, update TASK.md/shared lifecycle honestly, and generate the outcome snapshot:

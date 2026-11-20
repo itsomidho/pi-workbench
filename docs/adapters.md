@@ -2,11 +2,27 @@
 
 A provider adapter is an independent Pi package that registers a provider, discovers its models, and publishes accurate capabilities to Pi and `router/auto`.
 
+## Workbench commands
+
+| Command | Purpose |
+| --- | --- |
+| `piw adapter create <name> [destination]` | Generate an adapter package. |
+| `piw adapter check <path>` | Validate a local adapter package. |
+| `piw adapter install <path>` | Install and register an adapter. |
+| `piw adapter configure <provider>` | Save the provider’s local connection settings. |
+| `piw adapter health <provider>` | Check endpoint connectivity and authentication. |
+| `piw adapter models <provider>` | Query the adapter catalog. |
+| `piw adapter list` | List providers with saved environment files. |
+| `piw adapter remove <provider>` | Delete the local provider environment file; the adapter package stays installed. |
+| `piw adapter help` | Show adapter command help. |
+| `piw run --provider <provider> --model <model-id>` | Load a configured provider and select its model directly. |
+| `piw run --list-models [search]` | List available models and exit. |
+
 ## Rules
 
 - Adapter source defaults to `$HOME/.pi-adapters/pi-<name>`.
 - The public provider name is the adapter name, for example `provider-name`.
-- Credentials stay in `$HOME/.config/pi-workbench/providers/<name>.env`.
+- Credentials stay in the effective `providers` directory shown by `piw paths` (default: `$HOME/.config/pi-workbench/providers/<name>.env`).
 - API keys are hidden during configuration and stored with mode `0600`.
 - Never commit keys, OAuth state, private certificates, or real provider responses.
 - Review third-party adapter source before installing it.
@@ -80,7 +96,8 @@ Use `piw run`, not bare `pi`, for saved Workbench credentials:
 
 ```fish
 cd "$HOME/projects/my-project"
-piw run --provider example --model <model-id>
+# Replace model-id with an ID from the catalog.
+piw run --provider example --model model-id
 ```
 
 List every model visible to Pi:

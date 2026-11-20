@@ -2,6 +2,27 @@
 
 Workbench is ready for controlled use only when its runtime, domain, approval, model access and verification requirements are satisfied. A green test suite is not a guarantee of model judgment, framework correctness or provider access.
 
+## Workbench commands
+
+| Command | Purpose |
+| --- | --- |
+| `npm test` | Run the project test suite. |
+| `npm run check` | Validate the checkout. |
+| `git diff --check` | Check the working diff for whitespace errors. |
+| `piw doctor` | Diagnose the local installation. |
+| `piw check` | Validate the bundled Workbench files. |
+| `piw paths` | Print effective XDG, override, and legacy paths. |
+| `piw domain check` | Validate manifests and resources. |
+| `piw run --models 'provider/model-a,provider/model-b'` | Limit the models available in this session. |
+| `piw model-capabilities validate [path]` | Check policy structure without contacting providers. |
+| `/think <request>` | Discuss and approve a plan. |
+| `go` | Start the exact already-approved managed task if identified in the latest handoff; otherwise pass through as chat. |
+| `/router-status` | Show the active role, selection, and last physical response model. |
+| `/task-go <task-id>` | Start an explicitly identified approved managed task. |
+| `/task-go-stop` | Stop after the current turn. |
+| `/task-go-resume [task-id]` | Resume the persisted workflow; an ID, if given, must match. |
+| `piw report generate <task-directory> [status] [details.json]` | Write Markdown, JSON, and HTML reports. |
+
 ## Repeatable local checks
 
 ```bash
@@ -19,10 +40,11 @@ The suite covers domain/skill discovery, canonical local-project matching, appro
 A provider can return a healthy catalog containing models that its account guardrails do not permit. Do not weaken those policies to make a test pass. Verify one approved model and restrict the router to approved candidates:
 
 ```bash
-piw run --provider <provider> --model <approved-model>
-piw run --models '<provider>/<approved-model>'
+# Replace the example IDs with models approved for your account.
+piw run --model provider-a/model-id
+piw run --models 'provider-a/model-id'
 # Or multiple approved candidates for fallback inside that scope:
-piw run --models '<provider>/<model-one>,<provider>/<model-two>'
+piw run --models 'provider-a/model-id,provider-b/model-id'
 ```
 
 `piw run` defaults to `router/auto`; scoped candidates must still satisfy the requested role's capability metadata. Confirm `/router-role think` and `/router-status` in the actual session, and record assistant physical `provider/model`, not just the virtual selection. The router avoids every failed candidate in a retry chain; Pi controls retry eligibility and limits. A failed catalog/account combination can exhaust retries without reaching an accessible model. JSON/RPC process or command success does not imply a successful model response: inspect `stopReason` and `errorMessage`.
