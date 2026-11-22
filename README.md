@@ -38,7 +38,7 @@ Angle brackets mark required values; square brackets mark optional arguments. Re
 | Command | Purpose |
 | --- | --- |
 | `piw adapter help` | Show adapter command help. |
-| `piw adapter create <name> [destination]` | Generate an adapter package. |
+| `piw adapter create <name> [destination] [--protocol <api>]` | Generate an adapter package with the selected API protocol. |
 | `piw adapter check <path>` | Validate a local adapter package. |
 | `piw adapter install <path>` | Install and register an adapter. |
 | `piw adapter configure <provider>` | Save the provider’s local connection settings. |
@@ -237,6 +237,14 @@ piw adapter models example
 ```
 
 Do not run `piw adapter create` again for an existing adapter. Use `check`, `install`, `configure`, `health`, or `models` instead.
+
+Creation uses a generic template; the provider name does not automatically detect its API. Select the protocol documented by the service, for example:
+
+```bash
+piw adapter create example --protocol openai-completions
+```
+
+Supported protocols are `openai-completions`, `openai-responses` (the backward-compatible default), and `anthropic-messages`. The generated extension reads `manifest.protocol`; existing adapters are not migrated automatically. Provider-specific model catalogs and capability metadata may still need customization.
 
 See [docs/adapters.md](docs/adapters.md).
 

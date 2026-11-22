@@ -26,7 +26,7 @@ Usage:
   piw task transition <domain>/<project>/<date-slug> <status>
   piw task approve <domain>/<project>/<date-slug>
   piw task artifacts <init|write|context> <task-directory> [stage] [summary]
-  piw adapter create <name> [destination]
+  piw adapter create <name> [destination] [--protocol <api>]
   piw adapter check <path>
   piw adapter install <path>
   piw adapter configure <provider>

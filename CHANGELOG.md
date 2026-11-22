@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+## 0.5.23 - 2026-11-22
+
+- Document adapter protocol selection, defaults, and migration limitations in the README.
+- Synchronize the adapter command reference and top-level CLI help with `--protocol` support.
+
 ## 0.5.22 - 2026-11-22
 
 - Allow adapter creation to select an API with `--protocol`, rejecting unsupported values before creating files.

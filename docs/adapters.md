@@ -6,7 +6,7 @@ A provider adapter is an independent Pi package that registers a provider, disco
 
 | Command | Purpose |
 | --- | --- |
-| `piw adapter create <name> [destination]` | Generate an adapter package. |
+| `piw adapter create <name> [destination] [--protocol <api>]` | Generate an adapter package with the selected API protocol. |
 | `piw adapter check <path>` | Validate a local adapter package. |
 | `piw adapter install <path>` | Install and register an adapter. |
 | `piw adapter configure <provider>` | Save the provider’s local connection settings. |
