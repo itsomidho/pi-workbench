@@ -41,6 +41,19 @@ $HOME/.pi-adapters/pi-example
 
 If the destination already exists, creation stops safely. Do not recreate it; inspect and install the existing package instead.
 
+### Select the API protocol
+
+Creation uses a generic template; the provider name does not detect its API.
+For a Chat Completions service such as Numes, use:
+
+```bash
+piw adapter create numes --protocol openai-completions
+```
+
+Supported choices are `openai-completions`, `openai-responses` (the backward-compatible default), and `anthropic-messages`. An optional destination can precede or follow the protocol option. The generated extension reads `manifest.protocol`, so changing that field updates its registration. Provider-specific catalog formats and capability metadata may still need customization.
+
+Existing adapters are not migrated automatically; do not recreate an existing directory.
+
 ## Check and install
 
 ```fish

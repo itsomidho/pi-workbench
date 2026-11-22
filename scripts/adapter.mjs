@@ -13,7 +13,7 @@ fs.mkdirSync(configDir, { recursive: true, mode: 0o700 });
 
 function usage() {
   console.log(`Usage:
-  piw adapter create <name> [destination]
+  piw adapter create <name> [destination] [--protocol <api>]
   piw adapter check <path>
   piw adapter install <path>
   piw adapter configure <provider>
@@ -86,13 +86,17 @@ if (!action || action === 'help') { usage(); process.exit(0); }
 if (action === 'create') {
   const name = args[0];
   if (!name) fail('usage: piw adapter create <name> [destination]');
-  const destination = args[1] || path.join(adaptersDir, `pi-${name}`);
+  const createArgs = args.slice(1);
+  const flag = createArgs.indexOf('--protocol');
+  const protocolArgs = flag < 0 ? [] : createArgs.splice(flag, 2);
+  if (createArgs.length > 1 || createArgs.some(value => value.startsWith('--'))) fail('invalid create arguments');
+  const destination = createArgs[0] || path.join(adaptersDir, `pi-${name}`);
   if (fs.existsSync(destination)) {
     console.error(`Adapter already exists: ${destination}`);
     console.error(`Use: piw adapter check "${destination}"`);
     process.exit(2);
   }
-  run(process.execPath, [path.join(path.dirname(new URL(import.meta.url).pathname), 'create-adapter.mjs'), name, destination], process.cwd());
+  run(process.execPath, [path.join(path.dirname(new URL(import.meta.url).pathname), 'create-adapter.mjs'), name, destination, ...protocolArgs], process.cwd());
 }
 if (action === 'check') {
   const { dir } = manifestFor(args[0]);

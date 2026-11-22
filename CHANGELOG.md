@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+## 0.5.22 - 2026-11-22
+
+- Allow adapter creation to select an API with `--protocol`, rejecting unsupported values before creating files.
+- Read the generated provider API from `manifest.protocol` instead of hardcoding Responses.
+- Document protocol selection and add adapter creation regression tests.
+
 ## 0.5.21 - 2026-11-20
 
 - Add a complete Workbench command index to the README and topic-specific command references to the guides, including session model scope and its interaction with saved routing policy.

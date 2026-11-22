@@ -8,7 +8,19 @@ if (!name || !/^[a-z][a-z0-9-]*$/.test(name)) {
   console.error('The name must be lowercase kebab-case, e.g. example-provider.');
   process.exit(2);
 }
-const root = path.resolve(process.argv[3] ?? `./pi-${name}`);
+const options = process.argv.slice(3);
+const flag = options.indexOf('--protocol');
+const protocol = flag < 0 ? 'openai-responses' : options[flag + 1];
+if (!['openai-responses', 'openai-completions', 'anthropic-messages'].includes(protocol)) {
+  console.error('Unsupported protocol. Use openai-responses, openai-completions, or anthropic-messages.');
+  process.exit(2);
+}
+if (flag >= 0) options.splice(flag, 2);
+if (options.length > 1 || options.some(value => value.startsWith('--'))) {
+  console.error('Usage: create-adapter <name> [destination] [--protocol <api>]');
+  process.exit(2);
+}
+const root = path.resolve(options[0] ?? `./pi-${name}`);
 if (fs.existsSync(root)) throw new Error(`Destination already exists: ${root}`);
 const template = path.resolve(new URL('../adapters/adapter-template/', import.meta.url).pathname);
 const envPrefix = `${name.toUpperCase().replace(/[^A-Z0-9]+/g, '_')}_`;
@@ -25,4 +37,8 @@ function copy(source, destination) {
   fs.writeFileSync(destination, content, { mode: source.endsWith('.mjs') ? 0o755 : 0o644 });
 }
 copy(template, root);
+const manifestPath = path.join(root, 'manifest.json');
+const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
+manifest.protocol = protocol;
+fs.writeFileSync(manifestPath, JSON.stringify(manifest, null, 2) + '\n');
 console.log(`Created independent adapter project: ${root}`);
