@@ -4,6 +4,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import readline from 'node:readline';
+import { Writable } from 'node:stream';
 import { spawnSync } from 'node:child_process';
 
 const [action, ...args] = process.argv.slice(2);
@@ -52,33 +53,35 @@ function run(command, commandArgs, cwd, env = process.env) {
   process.exit(0);
 }
 function ask(question, hidden = false) {
-  if (!hidden || !process.stdin.isTTY) {
-    return new Promise((resolve) => {
-      const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
-      process.stdout.write(question);
-      rl.once('line', (answer) => { rl.close(); resolve(answer.trim()); });
-    });
-  }
-  return new Promise((resolve) => {
-    const input = process.stdin;
-    const output = process.stdout;
-    let restored = false;
-    const restore = () => {
-      if (restored) return;
-      restored = true;
-      spawnSync('stty', ['echo'], { stdio: ['ignore', 'ignore', 'ignore'] });
-    };
-    output.write(question);
-    spawnSync('stty', ['-echo'], { stdio: ['ignore', 'ignore', 'ignore'] });
-    const rl = readline.createInterface({ input, output, terminal: false });
-    input.resume();
-    rl.once('line', (answer) => {
+  const mask = hidden && Boolean(process.stdin.isTTY);
+  const output = mask
+    ? Object.assign(new Writable({ write(_chunk, _encoding, callback) { callback(); } }), { isTTY: true, columns: process.stdout.columns || 80 })
+    : process.stdout;
+  return new Promise((resolve, reject) => {
+    const rl = readline.createInterface({ input: process.stdin, output, terminal: Boolean(process.stdin.isTTY) });
+    let settled = false;
+    const restore = () => { if (process.stdin.isRaw) process.stdin.setRawMode(false); };
+    const cancel = () => {
+      if (settled) return;
+      settled = true;
       restore();
       rl.close();
-      output.write('\n');
+      process.stdout.write('\n');
+      const error = new Error('Configuration cancelled.');
+      error.code = 'ERR_CONFIG_CANCELLED';
+      reject(error);
+    };
+    process.stdout.write(question);
+    rl.once('line', (answer) => {
+      if (settled) return;
+      settled = true;
+      restore();
+      rl.close();
+      if (mask) process.stdout.write('\n');
       resolve(answer.trim());
     });
-    rl.once('close', restore);
+    rl.on('SIGINT', cancel);
+    process.once('SIGINT', cancel);
   });
 }
 
@@ -124,9 +127,20 @@ if (action === 'install') {
 if (action === 'configure') {
   const provider = args[0];
   const { data } = manifestFor(provider);
-  const baseUrl = await ask(`${data.baseUrlEnv} (base URL): `);
-  const apiKey = await ask(`${data.apiKeyEnv} (hidden): `, true);
-  const caCert = data.caCertEnv ? await ask(`${data.caCertEnv} (optional CA path): `) : '';
+  let baseUrl;
+  let apiKey;
+  let caCert = '';
+  try {
+    baseUrl = await ask(`${data.baseUrlEnv} (base URL): `);
+    apiKey = await ask(`${data.apiKeyEnv} (hidden): `, true);
+    if (data.caCertEnv) caCert = await ask(`${data.caCertEnv} (optional CA path): `);
+  } catch (error) {
+    if (error.code === 'ERR_CONFIG_CANCELLED') {
+      console.error(error.message);
+      process.exit(130);
+    }
+    throw error;
+  }
   if (!baseUrl || !apiKey) fail('base URL and API key are required');
   if (caCert && !fs.existsSync(caCert.replace(/^~(?=\/)/, os.homedir()))) fail(`CA certificate not found: ${caCert}`);
   const file = configPath(data.id);
