@@ -67,27 +67,49 @@ Print the findings to the user, grouped:
 - 🟡 Warning
 - 🔵 Suggestion
 
-Give each one as: `path:line` (with `+`/`-` side), a one-line problem, a short failure scenario, and a suggested fix.
+Show every inline draft and the summary draft in the required templates below, with `path:line` and the `+`/`-` side beside each inline item.
 
 Mark any finding whose line is **not** in `diff_lines.py` output as "summary-only". It goes in the overall note, not inline.
 
-If `--dry-run`, stop here. Otherwise ask: **"Post these N inline comments + summary to !<N>?"** Let the user drop or edit items. Do not post without a yes.
+If `--dry-run`, stop here. Otherwise ask: **"Post these N inline comments + summary to !<N>?"** Let the user drop or edit items. Do not create or publish any GitLab comment until the user gives an explicit yes. A skipped item is not posted.
 
 ## 7. Post to GitLab
 
-Comment body format (Markdown). Use GitLab suggestion blocks only when the fix is a drop-in replacement for exactly the commented line(s):
+Every posted comment uses one of the two templates. Keep the headings and order. Replace only the content, omit an optional block when it is empty, and write it as a person: short, specific, and useful. No bot, AI, or "Claude" signature or footer.
+
+Inline comment, including a reply to an existing discussion:
 
 ````markdown
-🔴 **Critical: Unescaped ACF value in output**
+**Critical: Unescaped URL in the button**
 
-`get_field('cta_url')` is echoed raw into `href`; an editor-supplied `javascript:` URL executes on click.
+`get_field('cta_url')` is printed directly into `href`. An editor can save a `javascript:` URL, and the browser will run it on click.
 
+Escape the value with `esc_url()` before output.
+````
+
+The first line is `**Critical: short title**`, `**Warning: short title**`, or `**Suggestion: short title**`. The next sentence says what is wrong. The sentence after that says what can happen. The last sentence says what to change. In a reply, the first sentence also says whether you agree and why. Add a GitLab suggestion block only when it replaces exactly the commented line or lines:
+
+````markdown
 ```suggestion:-0+0
 <a href="{{ esc_url(get_field('cta_url')) }}">
 ```
 ````
 
-Comments are posted from the authenticated GitLab account after the user's approval; verify the intended account rather than assuming a bundled person's identity. Do not add any bot, AI, or "Claude" signature or footer to inline comments or the summary. Write in a direct, human reviewer voice.
+Summary review, posted once for the whole MR:
+
+```markdown
+This MR changes the CTA link markup. The main risk is unescaped output; the rest looks sound.
+
+**Findings:** 1 critical, 0 warnings, 1 suggestion.
+- The plugin bump needs a manual check of every `get_field()` call.
+- Labels: no type label is set.
+
+**Verdict:** Blocked until the critical issue is fixed.
+```
+
+The summary is one short overview, the three counts, summary-only items, and one verdict: safe to merge, merge after the warnings, or blocked until the critical issues are fixed. Do not repeat the inline comments. A label mismatch is one summary line, not an inline finding. Omit the bullet list when there is nothing summary-only to say.
+
+Post only the items the user approved, from the authenticated GitLab account. Verify that account rather than assuming a bundled person's identity.
 
 Post every inline comment as a draft. Pass the body via a heredoc variable so quotes and backticks survive:
 
@@ -109,13 +131,6 @@ Then add the summary as a draft too, and publish all the drafts together as one 
 glab mr note create <N> --draft -m "$summary"
 glab mr note publish <N> --yes    # --yes is required when non-interactive
 ```
-
-The summary contains:
-- a one-paragraph overview of the MR;
-- counts by severity;
-- a label note if the MR has no type label, or one that clearly doesn't match the change (labels table in the project file); one line, not a finding;
-- the summary-only findings;
-- a verdict: ✅ safe to merge / ⚠️ merge after warnings / ⛔ blocked on criticals.
 
 If an inline create fails (usually a line outside the diff), don't retry blindly. Re-check the line against `diff_lines.py` and either fix the number or move the finding to the summary.
 

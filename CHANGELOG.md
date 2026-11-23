@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+## 0.5.24 - 2026-11-24
+
+- Require one short inline template and one short summary template for GitLab merge-request reviews.
+- Keep review comments unpublished until the user explicitly approves them.
+
 ## 0.5.23 - 2026-11-22
 
 - Document adapter protocol selection, defaults, and migration limitations in the README.
