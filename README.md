@@ -118,33 +118,15 @@ Angle brackets mark required values; square brackets mark optional arguments. Re
 
 ## Install for daily use
 
-Consumer installs use a GitHub release archive. No clone and no `.git` directory are required.
+Install the tagged Pi Workbench release into `~/.pi-workbench` without Git:
 
 ```bash
-export PI_WORKBENCH_HOME="$HOME/.pi-workbench"
-mkdir -p "$PI_WORKBENCH_HOME"
-curl -L https://github.com/itsomidho/pi-workbench/archive/refs/tags/v0.5.21.tar.gz \
-  | tar -xz --strip-components=1 -C "$PI_WORKBENCH_HOME"
-cd "$PI_WORKBENCH_HOME"
-./scripts/install.sh
-piw version
-piw doctor
-piw check
+curl -fsSL https://raw.githubusercontent.com/itsomidho/pi-workbench/v0.5.26/install.sh | bash
 ```
 
-Fish equivalent:
+The URL and installer are pinned to the same release. Download the script separately if you want to inspect it before running. The installer refuses to overwrite an existing directory; use `piw update --yes` for an existing archive installation.
 
-```fish
-set -gx PI_WORKBENCH_HOME "$HOME/.pi-workbench"
-mkdir -p "$PI_WORKBENCH_HOME"
-curl -L https://github.com/itsomidho/pi-workbench/archive/refs/tags/v0.5.21.tar.gz \
-  | tar -xz --strip-components=1 -C "$PI_WORKBENCH_HOME"
-cd "$PI_WORKBENCH_HOME"
-./scripts/install.sh
-piw version
-piw doctor
-piw check
-```
+Verify with `piw version`, `piw doctor`, and `piw check`.
 
 The optional bootstrap mode can install Node.js, npm, and Pi on supported apt-based machines:
 

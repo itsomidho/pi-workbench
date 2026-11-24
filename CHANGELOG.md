@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+## 0.5.26 - 2026-11-24
+
+- Add a Git-free, version-pinned bootstrap installer for `~/.pi-workbench`.
+- Document the tagged cURL install command and add release preparation and version consistency checks.
+
 ## 0.5.25 - 2026-11-24
 
 - Accept slash-containing model IDs in capability policies and stage allowlists while rejecting malformed IDs and unknown stage models.

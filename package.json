@@ -1,11 +1,12 @@
 {
   "name": "pi-workbench",
-  "version": "0.5.25",
+  "version": "0.5.26",
   "private": true,
   "description": "Portable, vendor-neutral Pi configuration, workflows, standards, and adapter tooling.",
   "type": "module",
   "scripts": {
-    "check": "node scripts/verify-workflows.mjs",
+    "check": "node scripts/verify-workflows.mjs && node scripts/prepare-release.mjs --check",
+    "release:prepare": "node scripts/prepare-release.mjs",
     "test": "node --test scripts/*.test.mjs",
     "test:adapter": "node --test scripts/adapter-contract.test.mjs"
   },
