@@ -95,8 +95,9 @@ sys.stdout.write('visible\n' if secret in text else 'hidden\n')
   assert.match(saved, /EXAMPLE_API_KEY="hidden-secret-value"/);
 });
 
-test('configure cancels on Ctrl+C without the unsettled-await warning', () => {
+test('configure cancels on Ctrl+C without the unsettled-await warning', t => {
   const temp = fs.mkdtempSync(path.join(os.tmpdir(), 'adapter-cancel-'));
+  t.after(() => fs.rmSync(temp, { recursive: true, force: true }));
   const adapter = path.join(temp, 'adapters', 'pi-example');
   const config = path.join(temp, 'config');
   fs.mkdirSync(adapter, { recursive: true });
@@ -111,12 +112,11 @@ if pid == 0:
 buf = b''
 def pump(timeout):
     global buf
-    end = time.time() + timeout
-    while time.time() < end:
+    end = time.monotonic() + timeout
+    while time.monotonic() < end:
         ready, _, _ = select.select([fd], [], [], 0.1)
         if not ready:
-            if os.waitpid(pid, os.WNOHANG)[0]:
-                return
+            # Only the exit-wait loop may reap the child and consume its status.
             continue
         try:
             chunk = os.read(fd, 4096)
@@ -141,12 +141,19 @@ os.write(fd, b'hidden-secret-value' + enter)
 if not wait_for('CA_CERT'):
     sys.exit(4)
 os.write(fd, bytes([3]))
-for _ in range(40):
+deadline = time.monotonic() + 4
+while time.monotonic() < deadline:
     pump(0.1)
     done, status = os.waitpid(pid, os.WNOHANG)
     if done:
-        sys.stderr.write(buf.decode('utf8', 'replace'))
+        sys.stderr.write(buf.decode('utf8', 'replace').replace('hidden-secret-value', '[redacted]'))
         sys.exit(os.waitstatus_to_exitcode(status))
+    # PTY EOF/EIO may precede waitpid readiness; do not burn through a fixed
+    # iteration count while the child is still shutting down.
+    time.sleep(0.01)
+os.kill(pid, 9)
+os.waitpid(pid, 0)
+sys.stderr.write('Timed out waiting for the adapter to exit after Ctrl+C.\n')
 sys.exit(9)
 `, process.execPath, path.join(root, 'scripts/adapter.mjs'), 'configure', 'example'], {
     encoding: 'utf8',

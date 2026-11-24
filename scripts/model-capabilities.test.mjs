@@ -40,6 +40,36 @@ test('interactive capability policy init displays the exact policy it saves', t 
   assert.match(execFileSync(process.execPath, [cli, 'list', file], { encoding: 'utf8' }), /openai-codex\/gpt-5/);
 });
 
+test('capability policy accepts slash-containing model IDs in models and stage allowlists', t => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'pi-model-capabilities-slash-'));
+  t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
+  const file = path.join(dir, 'policy.json');
+  const key = 'provider-a/namespace/model-v1';
+  fs.writeFileSync(file, JSON.stringify({
+    version: 1,
+    models: { [key]: { capabilities: ['planning'], tier: 'strong' } },
+    stages: { planning: [key] },
+  }));
+  assert.match(execFileSync(process.execPath, [cli, 'validate', file], { encoding: 'utf8' }), /Valid capability policy/);
+  assert.ok(execFileSync(process.execPath, [cli, 'list', file], { encoding: 'utf8' }).includes(`planning: ${key}`));
+});
+
+test('capability policy rejects malformed keys and unknown stage models', t => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'pi-model-capabilities-keys-'));
+  t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
+  const file = path.join(dir, 'policy.json');
+  const model = { capabilities: ['planning'], tier: 'strong' };
+  for (const key of ['provider-a//model', 'provider-a/namespace//model', 'provider-a/model/', '/model', 'provider-a/model name']) {
+    fs.writeFileSync(file, JSON.stringify({ models: { [key]: model } }));
+    assert.throws(() => execFileSync(process.execPath, [cli, 'validate', file], { encoding: 'utf8', stdio: 'pipe' }), error => error.status === 2 && /Invalid model policy/.test(error.stderr), key);
+  }
+  fs.writeFileSync(file, JSON.stringify({
+    models: { 'provider-a/namespace/model': model },
+    stages: { planning: ['provider-a/namespace/unknown'] },
+  }));
+  assert.throws(() => execFileSync(process.execPath, [cli, 'validate', file], { encoding: 'utf8', stdio: 'pipe' }), error => error.status === 2 && /Invalid planning stage allowlist/.test(error.stderr));
+});
+
 test('capability policy validation rejects unknown capabilities and stage models', t => {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'pi-model-capabilities-invalid-'));
   t.after(() => fs.rmSync(dir, { recursive: true, force: true }));

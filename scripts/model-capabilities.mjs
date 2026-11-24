@@ -8,7 +8,8 @@ import { stdin as input, stdout as output } from 'node:process';
 const capabilities = ['planning', 'coding', 'debugging', 'review', 'qa', 'testing', 'security'];
 const tiers = ['standard', 'strong', 'expert'];
 const defaultFile = () => workbenchPaths().modelCapabilities;
-const modelKey = value => /^[a-z][a-z0-9-]*\/[A-Za-z0-9][A-Za-z0-9._:-]*$/.test(value);
+// The first slash separates provider from model; model IDs may contain more slashes.
+const modelKey = value => /^[a-z][a-z0-9-]*\/[A-Za-z0-9][A-Za-z0-9._:-]*(?:\/[A-Za-z0-9][A-Za-z0-9._:-]*)*$/.test(value);
 
 function emptyStages() {
   return Object.fromEntries(capabilities.map(capability => [capability, []]));

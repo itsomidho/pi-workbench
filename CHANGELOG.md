@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+## 0.5.25 - 2026-11-24
+
+- Accept slash-containing model IDs in capability policies and stage allowlists while rejecting malformed IDs and unknown stage models.
+- Stabilize the adapter Ctrl+C test by waiting against a real deadline and collecting child exit status in one place; keep cancellation and credential-safety assertions unchanged.
+
 ## 0.5.24 - 2026-11-24
 
 - Require one short inline template and one short summary template for GitLab merge-request reviews.
