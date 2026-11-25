@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+## 0.5.27 - 2026-11-25
+
+- Use one daily cURL command for fresh installations and updates of existing archive installations.
+- Protect Git checkouts, symlinks, and unrelated directories, and reject downgrades.
+
 ## 0.5.26 - 2026-11-24
 
 - Add a Git-free, version-pinned bootstrap installer for `~/.pi-workbench`.

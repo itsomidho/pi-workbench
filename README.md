@@ -118,13 +118,19 @@ Angle brackets mark required values; square brackets mark optional arguments. Re
 
 ## Install for daily use
 
-Install the tagged Pi Workbench release into `~/.pi-workbench` without Git:
+Install or update Pi Workbench in `~/.pi-workbench` without Git:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/itsomidho/pi-workbench/v0.5.26/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/itsomidho/pi-workbench/main/install.sh | bash
 ```
 
-The URL and installer are pinned to the same release. Download the script separately if you want to inspect it before running. The installer refuses to overwrite an existing directory; use `piw update --yes` for an existing archive installation.
+Run the same command again to update a recognized archive installation. For a fresh install pinned to a specific release, use the tagged script:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/itsomidho/pi-workbench/v0.5.27/install.sh | bash
+```
+
+Download the script separately if you want to inspect it before running. The daily installer refuses Git checkouts, symlinks, and unrelated directories.
 
 Verify with `piw version`, `piw doctor`, and `piw check`.
 

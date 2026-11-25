@@ -38,6 +38,14 @@ function pack(directory, destination) {
 const release = JSON.parse(capture('curl', ['-fsSL', '-H', 'Accept: application/vnd.github+json', api]));
 const latest = release.tag_name?.replace(/^v/, '');
 if (!latest || !release.tarball_url) throw new Error('Latest release metadata is invalid.');
+if (/^\d+\.\d+\.\d+$/.test(latest) && /^\d+\.\d+\.\d+$/.test(current)) {
+  const installed = current.split('.').map(BigInt);
+  const offered = latest.split('.').map(BigInt);
+  const difference = offered.findIndex((part, index) => part !== installed[index]);
+  if (difference >= 0 && offered[difference] < installed[difference]) {
+    throw new Error(`Refusing to downgrade pi-workbench from ${current} to ${latest}.`);
+  }
+}
 if (latest === current) { console.log(`Already up to date: ${current}`); process.exit(0); }
 console.log(`Installed: ${current}\nLatest:   ${latest}`);
 if (args.has('--check')) process.exit(0);

@@ -29,14 +29,20 @@
 The root bootstrap script downloads a published release archive and installs it into `~/.pi-workbench` without Git. It requires Bash, cURL, tar, Node.js ≥ 22.19, npm, and Pi.
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/itsomidho/pi-workbench/v0.5.26/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/itsomidho/pi-workbench/main/install.sh | bash
 ```
 
-This installs the release named in the URL, not the latest release at execution time. Download the script separately if you want to inspect it or pass a different published tag.
+Run the same command again to update a recognized archive installation. For a fresh install pinned to a specific release, use the tagged script:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/itsomidho/pi-workbench/v0.5.27/install.sh | bash
+```
+
+The tagged script installs the release named in its URL on a fresh device. With an existing archive installation, the daily command checks GitHub for the latest published release. Download the script separately if you want to inspect it or pass a different published tag.
 
 For maintainers: before committing and tagging a release, run `npm run release:prepare -- <tag>` (for example, `npm run release:prepare -- v0.5.25`). It updates `package.json`, the bootstrap installer, and both documentation URLs together. Run `npm run check` before tagging the same version. Preparing a release does not commit, tag, push, or publish it.
 
-The bootstrap refuses to overwrite an existing `~/.pi-workbench`. Use `piw update --yes` for an existing archive installation. If the archive was copied successfully but the regular installer failed, fix the reported error and retry with `bash ~/.pi-workbench/scripts/install.sh`.
+The bootstrap refuses Git checkouts, symlinks, and unrelated directories. It delegates archive updates to the installed Workbench updater, which preserves the previous installation if an update fails and rollback succeeds. If the archive was copied successfully but the regular installer failed, fix the reported error and retry with `bash ~/.pi-workbench/scripts/install.sh`.
 
 Verify with `piw version`, `piw doctor`, and `piw check`.
 
