@@ -6,7 +6,7 @@ set -euo pipefail
 
 repo=https://github.com/itsomidho/pi-workbench
 install_dir="$HOME/.pi-workbench"
-version=v0.5.27
+version=v0.5.28
 
 fail() { printf 'Install error: %s\n' "$1" >&2; exit 1; }
 

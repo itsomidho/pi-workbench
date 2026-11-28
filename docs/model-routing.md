@@ -27,6 +27,24 @@ See [the session-scope examples](model-router-usage.md#session-model-scope) for 
 
 Catalog visibility and credentials do not guarantee that an account/guardrail policy permits a model. Automatic selection only falls back when Pi schedules a retry; non-retryable failures are not automatically retried by Workbench. Retry counts and delays remain Pi's responsibility. Use approved scoped models (`piw run --models 'provider/model-one,provider/model-two'`) when the catalog includes inaccessible candidates. A pinned failed model fails explicitly; Workbench never overrides account guardrails to obtain a response.
 
+## Assistant-callable tools
+
+The model-router extension also registers these tools in the current session:
+
+| Tool | Purpose |
+| --- | --- |
+| `router_set_role({ role, complexity? })` | Update the registered router role and return status. |
+| `router_status({})` | Return role, complexity, selection, routing-active flag, and historical physical response identity (null when unknown). |
+| `think_advisor({ brief })` | Run one separate tool-less analysis using the think-advisor capability profile. |
+
+Role changes take effect on the **next user request** using `router/auto`, not a tool continuation already in progress. A directly selected physical model remains direct. Status is not proof of next-dispatch identity.
+
+The Advisor uses the same session model scope, saved capability policy, and explicit router overrides, but selects against its own profile without changing the coordinator role. It makes one authenticated `modelRegistry.streamSimple` request, with an independent system prompt, only the supplied brief, and an empty tool list. There is no agent loop, tool dispatcher, filesystem/resource discovery, session-history forwarding, MCP connection, or nested delegation. Unexpected tool calls are rejected, never executed. This is a model-request boundary, **not an OS sandbox**: installed provider/extension code remains trusted.
+
+Limits: 48,000 brief characters, 4,096 output tokens, 120 seconds, and one concurrent Advisor request per session. Cancellation signals reach the provider; timeout/cancellation return even if a provider ignores abort, but cannot guarantee upstream billing stops. Errors, truncation, empty responses, or unverified physical identities do not count as successful review. No automatic retry or scope expansion is performed. The tool returns response-model identity and usage when available. It can use the same physical model as the coordinator and cannot independently inspect sources. Never send credentials in briefs; provider policies and normal request costs apply. Treat its output as advice, not execution authority.
+
+The Think protocol prefers these tools and retains the explicit “Advisor unavailable; coordinator-only analysis” fallback on absence/failure. Custom tool allowlists can hide them; include their names when using an explicit `--tools` allowlist. Updating this checkout does not update a separate installed copy: update the Workbench package through your usual local installation process, then `/reload` or restart Pi. No upstream Pi patch is required.
+
 ## Verified role changes
 
 The registered router owns its effective role. Cross-extension callers use `requestRouterRole(pi, role)` from `scripts/router-role.mjs`, which requires acknowledgement through the session event bus. Direct mutable imports are not a shared-state mechanism across isolated Pi extensions.
@@ -37,4 +55,4 @@ The registered router owns its effective role. Cross-extension callers use `requ
 
 The current implementation has no configurable maxCost policy file, measured quality-tier ranking, automatic cost/latency optimization, or generic vendor-independent reasoning-effort budget. Do not advertise those as implemented behavior. Additional policy controls need separate design and tests.
 
-Role profiles do not enforce tool permissions, create separate agents, or establish read-only execution. Advisor delegation requires an actual verified boundary. See the Think protocol for coordinator-only fallback disclosure.
+Role profiles do not enforce tool permissions, create separate agents, or establish read-only execution. Advisor delegation requires an actual verified boundary; the bundled `think_advisor` tool supplies the single-request tool-less boundary described above. See the Think protocol for coordinator-only fallback disclosure.

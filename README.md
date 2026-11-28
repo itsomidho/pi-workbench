@@ -96,6 +96,8 @@ Angle brackets mark required values; square brackets mark optional arguments. Re
 | `/task-report <task-id> <NN-step> <summary>` | Create a numbered local report. |
 | `/reload` | Reload Pi resources and extensions. |
 
+The assistant can also call `router_set_role`, `router_status`, and `think_advisor` directly. Advisor analysis is a separate tool-less, brief-only request, not an independent source inspection; it can use the same physical model and adds request cost. See [tool boundaries and activation](docs/model-routing.md#assistant-callable-tools).
+
 ### Bundled skills inside Pi
 
 | Area | Commands |
@@ -127,7 +129,7 @@ curl -fsSL https://raw.githubusercontent.com/itsomidho/pi-workbench/main/install
 Run the same command again to update a recognized archive installation. For a fresh install pinned to a specific release, use the tagged script:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/itsomidho/pi-workbench/v0.5.27/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/itsomidho/pi-workbench/v0.5.28/install.sh | bash
 ```
 
 Download the script separately if you want to inspect it before running. The daily installer refuses Git checkouts, symlinks, and unrelated directories.

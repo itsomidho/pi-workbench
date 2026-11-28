@@ -35,7 +35,7 @@ curl -fsSL https://raw.githubusercontent.com/itsomidho/pi-workbench/main/install
 Run the same command again to update a recognized archive installation. For a fresh install pinned to a specific release, use the tagged script:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/itsomidho/pi-workbench/v0.5.27/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/itsomidho/pi-workbench/v0.5.28/install.sh | bash
 ```
 
 The tagged script installs the release named in its URL on a fresh device. With an existing archive installation, the daily command checks GitHub for the latest published release. Download the script separately if you want to inspect it or pass a different published tag.

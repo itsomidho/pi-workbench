@@ -47,7 +47,7 @@ piw run --models 'provider-a/model-id'
 piw run --models 'provider-a/model-id,provider-b/model-id'
 ```
 
-`piw run` defaults to `router/auto`; scoped candidates must still satisfy the requested role's capability metadata. Confirm `/router-role think` and `/router-status` in the actual session, and record assistant physical `provider/model`, not just the virtual selection. The router avoids every failed candidate in a retry chain; Pi controls retry eligibility and limits. A failed catalog/account combination can exhaust retries without reaching an accessible model. JSON/RPC process or command success does not imply a successful model response: inspect `stopReason` and `errorMessage`.
+`piw run` defaults to `router/auto`; scoped candidates must still satisfy the requested role's capability metadata. Confirm with `router_set_role({ role: "think" })` and `router_status({})` (or `/router-role think` and `/router-status`) in the actual session, and record assistant physical `provider/model`, not just the virtual selection. The router avoids every failed candidate in a retry chain; Pi controls retry eligibility and limits. A failed catalog/account combination can exhaust retries without reaching an accessible model. JSON/RPC process or command success does not imply a successful model response: inspect `stopReason` and `errorMessage`.
 
 ## Controlled end-to-end smoke
 
@@ -58,7 +58,7 @@ A live utility fixture demonstrates orchestration, not application-level browser
 ## Honest execution limits
 
 - Managed stages run in the current session. Role changes do not create independent reviewers or enforced read-only permissions.
-- Think uses coordinator-only analysis when verified read-only/tool-less delegation is unavailable. A manually orchestrated tool-less child test does not establish an automatic delegation feature or independent source review.
+- Think's bundled `think_advisor` tool performs a separate, bounded tool-less model request using only a supplied brief, with no inherited history or source access. Real Pi fixture tests exercise model-issued router tools, successful Advisor analysis, coordinator-role preservation, and rejection of provider-issued write calls. This does not establish independent source inspection, model diversity, live provider compatibility, or an OS sandbox. Think retains coordinator-only analysis when the tool is unavailable or fails.
 - Project standards matching reads explicit identity fields, expands home-relative paths and canonicalizes aliases. Ambiguous, unsafe, partial or unsupported formats require clarification; filenames are not identities.
 - Legacy report inputs remain conservative. Resolution status, acceptance and delivery need explicit recorded metadata; `blocking: false` alone does not establish that a finding was resolved.
 - Browser QA needs a reachable test browser and trusted local certificate authority. Never fix this by globally disabling certificate validation or copying an everyday browser's credentials into an automation profile.

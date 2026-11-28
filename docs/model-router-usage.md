@@ -61,6 +61,8 @@ Inside Pi:
 
 The role applies to the next user request using `router/auto`; it does not reroute an already running request or a directly selected physical model. Status distinguishes the effective role's base requirements, selected model, and the last physical response model on the current branch. That last response is historical evidence, not a prediction for the next request; prompt inference can add reasoning to the base profile.
 
+The assistant can use `router_set_role`, `router_status`, and the bounded tool-less `think_advisor` tool directly. See [assistant-callable tools](model-routing.md#assistant-callable-tools) for boundary, scope, costs, failure handling, and activation. Current-session role updates still apply only on the next routed user request, not the current tool continuation.
+
 Roles are capability hints, not provider/model aliases or tool permissions. In particular, `think-advisor` does not create a delegated agent, and `tools: false` does not disable tools. Delegate only through a verified read-only or tool-less execution boundary; otherwise disclose coordinator-only analysis. Set the advisor role in the delegated runtime, not in the coordinator. The router considers work capability, task complexity, tools, reasoning, vision, and context window. Set complexity explicitly when needed: `/router-role developer complex` or `PI_ROUTER_COMPLEXITY=complex`. For durable managed tasks, Think records `simple`, `moderate`, or `complex` in shared task context and each stage applies it automatically. A model may be visible in the catalog but rejected for a role if its metadata does not satisfy the role.
 
 ## Requests from other extensions

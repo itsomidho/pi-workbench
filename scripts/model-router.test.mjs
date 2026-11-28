@@ -24,12 +24,14 @@ async function harness(t, initialRole) {
   });
   const module = await import(`../extensions/model-router.ts?test=${instance++}`);
   const commands = new Map();
+  const tools = new Map();
   const bus = new EventEmitter();
   const events = { emit: (name, data) => bus.emit(name, data), on: (name, handler) => { bus.on(name, handler); return () => bus.off(name, handler); } };
   let virtual;
   module.default({
     events,
     registerCommand: (name, command) => commands.set(name, command),
+    registerTool: tool => tools.set(tool.name, tool),
     registerVirtualModel: model => { virtual = model; },
   });
   const general = { provider: 'test', id: 'general', api: 'openai-responses', reasoning: false, input: ['text'], contextWindow: 200_000 };
@@ -43,7 +45,7 @@ async function harness(t, initialRole) {
     ui: { notify: (text, level) => notifications.push({ text, level }) },
   };
   return {
-    ...module, commands, notifications, ctx, general, reasoning, events,
+    ...module, commands, tools, notifications, ctx, general, reasoning, events,
     setBranch: entries => { branch = entries; },
     route: (extra = {}) => virtual.route({ reason: 'user', messages: [], thinkingLevel: 'medium', ...extra }, ctx),
     status: async () => {
@@ -213,4 +215,63 @@ test('explicit model override still respects role requirements', async t => {
   await assert.rejects(h.route(), /Requested router override is unavailable/);
   h.setRouterRole('developer');
   assert.equal((await h.route()).model.id, 'general');
+});
+
+
+test('router tools share registered command state and report continuation limits', async t => {
+  const h = await harness(t, 'developer');
+  const set = h.tools.get('router_set_role');
+  const status = h.tools.get('router_status');
+  const changed = await set.execute('set', { role: 'think', complexity: 'complex' }, undefined, undefined, h.ctx);
+  assert.equal(changed.details.role, 'think');
+  assert.equal(changed.details.complexity, 'complex');
+  assert.equal(changed.details.routingActive, true);
+  assert.equal(changed.details.lastPhysicalResponseModel, null);
+  assert.match(changed.details.appliesTo, /not the current tool continuation/);
+  assert.match((await h.status()).text, /Role: think;/);
+  await h.commands.get('router-role').handler('developer simple', h.ctx);
+  assert.equal((await status.execute('status', {}, undefined, undefined, h.ctx)).details.role, 'developer');
+  await assert.rejects(set.execute('set', { role: 'missing' }, undefined, undefined, h.ctx), /Unknown router role/);
+  await assert.rejects(set.execute('set', { role: 'think', complexity: 'invalid' }, undefined, undefined, h.ctx), /Unknown router complexity/);
+  const controller = new AbortController(); controller.abort();
+  await assert.rejects(set.execute('set', { role: 'think' }, controller.signal, undefined, h.ctx), /cancelled/);
+  assert.equal(h.getRouterRole(), 'developer');
+  h.ctx.model = h.general;
+  assert.equal((await status.execute('status', {}, undefined, undefined, h.ctx)).details.routingActive, false);
+});
+
+test('Advisor selects its own profile without mutating coordinator, honours scope and fails closed', async t => {
+  const h = await harness(t, 'developer');
+  let selected;
+  h.ctx.modelRegistry.streamSimple = (model, context) => {
+    selected = model;
+    assert.deepEqual(context.tools, []);
+    return { result: async () => ({ role: 'assistant', provider: model.provider, model: model.id, stopReason: 'stop', content: [{ type: 'text', text: 'Separate analysis.' }] }) };
+  };
+  const advisor = h.tools.get('think_advisor');
+  const result = await advisor.execute('advisor', { brief: 'Review supplied evidence' }, undefined, undefined, h.ctx);
+  assert.equal(selected.id, 'reasoning');
+  assert.equal(result.details.effectiveRole, 'think-advisor');
+  assert.equal(h.getRouterRole(), 'developer');
+  assert.equal(h.getRouterComplexity(), 'moderate');
+  h.ctx.scopedModels = [{ model: h.general }];
+  await assert.rejects(advisor.execute('advisor', { brief: 'Review' }, undefined, undefined, h.ctx), /No accessible model/);
+  assert.equal(h.getRouterRole(), 'developer');
+  h.ctx.scopedModels = [{ model: h.reasoning }];
+  assert.equal((await advisor.execute('advisor', { brief: 'Review again' }, undefined, undefined, h.ctx)).details.physicalResponseModel, 'test/reasoning');
+});
+
+test('Advisor respects capability policy and prevents overlapping requests', async t => {
+  const h = await harness(t, 'developer');
+  const advisor = h.tools.get('think_advisor');
+  h.ctx.modelRegistry.getAvailable = () => [{ ...h.reasoning, workbenchRouting: { capabilities: ['coding'] } }];
+  await assert.rejects(advisor.execute('advisor', { brief: 'Review' }, undefined, undefined, h.ctx), /No accessible model/);
+  h.ctx.modelRegistry.getAvailable = () => [h.reasoning];
+  let finish;
+  h.ctx.modelRegistry.streamSimple = () => ({ result: () => new Promise(resolve => { finish = resolve; }) });
+  const pending = advisor.execute('advisor', { brief: 'Review' }, undefined, undefined, h.ctx);
+  await assert.rejects(advisor.execute('advisor2', { brief: 'Review' }, undefined, undefined, h.ctx), /already running/);
+  finish({ provider: 'test', model: 'reasoning', stopReason: 'stop', content: [{ type: 'text', text: 'Done' }] });
+  await pending;
+  assert.equal(h.getRouterRole(), 'developer');
 });

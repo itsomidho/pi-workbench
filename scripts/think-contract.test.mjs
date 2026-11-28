@@ -13,6 +13,10 @@ test('think entry points disclose fallback and keep advisor routing separate', (
     assert.match(text, /Pi commands, not shell commands/, file);
     assert.match(text, /response metadata/, file);
     assert.match(text, /unknown/, file);
+    for (const tool of ['router_set_role', 'router_status', 'think_advisor']) assert.ok(text.includes(tool), `${file}: ${tool}`);
+    assert.match(text, /next user request/, file);
+    assert.match(text, /same physical model/, file);
+    assert.match(text, /cancelled/, file);
   }
 });
 

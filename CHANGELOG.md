@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+## 0.5.28 - 2026-11-28
+
+- Add current-session `router_set_role` and `router_status` tools while preserving router slash commands and next-user-request dispatch semantics.
+- Add bounded `think_advisor` brief-only analysis with no tool execution, inherited history, or coordinator-role mutation; report physical response identity and retain explicit failure fallback.
+- Update Think protocols and document costs, activation, safety boundaries, and real Pi fixture coverage.
+
 ## 0.5.27 - 2026-11-25
 
 - Use one daily cURL command for fresh installations and updates of existing archive installations.

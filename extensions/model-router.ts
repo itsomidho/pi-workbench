@@ -2,6 +2,7 @@ import { workbenchPaths } from "../scripts/workbench-paths.mjs";
 import type { ExtensionAPI, ExtensionContext, ModelRoute, ModelRouteRequest } from "@earendil-works/pi-coding-agent";
 import fs from "node:fs";
 import { routerRoleEvent } from "../scripts/router-role.mjs";
+import { runThinkAdvisor } from "../scripts/think-advisor.mjs";
 
 type Complexity = "simple" | "moderate" | "complex";
 type Capability = "planning" | "coding" | "debugging" | "review" | "qa" | "testing" | "security";
@@ -112,7 +113,7 @@ function available(ctx: ExtensionContext): any[] {
   return scoped.length ? scoped : (ctx.modelRegistry.getAvailable() as any[]);
 }
 
-function choose(request: RouterRequest, ctx: ExtensionContext, wanted: Requirements, excluded = new Set<string>()): any {
+function choose(ctx: ExtensionContext, wanted: Requirements, excluded = new Set<string>()): any {
   const explicitProvider = process.env[PROVIDER_ENV];
   const explicitModel = process.env[MODEL_ENV];
   const policy = capabilityPolicy();
@@ -153,7 +154,7 @@ function route(request: RouterRequest, ctx: ExtensionContext): ModelRoute<Router
   const failedModels = new Set<string>(request.reason === "retry" && Array.isArray(request.state?.failedModels) ? request.state.failedModels : []);
   if (failed) failedModels.add(`${failed.provider}/${failed.id}`);
   const sticky = request.reason === "continuation" && !failed ? request.previous?.model : undefined;
-  const selected = sticky ?? choose(request, ctx, requirements(request), failedModels);
+  const selected = sticky ?? choose(ctx, requirements(request), failedModels);
   return {
     model: selected,
     thinkingLevel: complexity === "complex" ? "high" : complexity === "simple" ? "low" : request.thinkingLevel ?? "medium",
@@ -161,7 +162,57 @@ function route(request: RouterRequest, ctx: ExtensionContext): ModelRoute<Router
   };
 }
 
+export function routerStatus(ctx: ExtensionContext) {
+  const role = getRouterRole();
+  const selection = ctx.model ? `${ctx.model.provider}/${ctx.model.id}` : "unknown";
+  const lastResponse = ctx.sessionManager.getBranch().findLast(
+    entry => entry.type === "message" && entry.message.role === "assistant",
+  );
+  const message = lastResponse?.type === "message" && lastResponse.message.role === "assistant" ? lastResponse.message : undefined;
+  return {
+    role, requirements: ROLE_REQUIREMENTS[role], complexity: getRouterComplexity(),
+    selectedModel: selection, routingActive: selection === `${ROUTER_PROVIDER}/auto`,
+    lastPhysicalResponseModel: message?.provider && message.model && message.provider !== ROUTER_PROVIDER ? `${message.provider}/${message.model}` : null,
+    appliesTo: "next user request using router/auto; not the current tool continuation",
+  };
+}
+
 export default function (pi: ExtensionAPI) {
+  const toolResult = <T,>(details: T) => ({ content: [{ type: "text" as const, text: JSON.stringify(details, null, 2) }], details });
+  // Plain JSON Schema is supported by Pi. Keep this extension free of runtime schema dependencies.
+  pi.registerTool({
+    name: "router_status", label: "Router status",
+    description: "Inspect this session's registered router role, complexity, selection, and historical physical response evidence. Does not prove the next dispatch model.",
+    parameters: { type: "object", properties: {}, additionalProperties: false } as any,
+    async execute(_id, _params, _signal, _update, ctx) { return toolResult(routerStatus(ctx)); },
+  });
+  pi.registerTool({
+    name: "router_set_role", label: "Set router role",
+    description: "Set this session's router capability role and optional complexity. Applies on the next user request with router/auto; does not change tool permissions, the current continuation, or a directly selected physical model.",
+    parameters: { type: "object", properties: {
+      role: { type: "string", enum: Object.keys(ROLE_REQUIREMENTS) },
+      complexity: { type: "string", enum: [...COMPLEXITIES] },
+    }, required: ["role"], additionalProperties: false } as any,
+    async execute(_id, params: any, signal, _update, ctx) {
+      if (signal?.aborted) throw new Error("Router update cancelled.");
+      setRouterRole(params.role, params.complexity);
+      return toolResult(routerStatus(ctx));
+    },
+  });
+  let advisorRunning = false;
+  pi.registerTool({
+    name: "think_advisor", label: "Think advisor",
+    description: "Request a separate, bounded tool-less analysis of a self-contained brief. Uses think-advisor capability selection within this session's model scope/policy without changing the coordinator role. No tools, file access, session history, or independent source inspection. Incurs an additional model request and may use the same physical model.",
+    parameters: { type: "object", properties: { brief: { type: "string", minLength: 1, maxLength: 48000 } }, required: ["brief"], additionalProperties: false } as any,
+    async execute(_id, params: any, signal, _update, ctx) {
+      if (advisorRunning) throw new Error("An Advisor request is already running in this session.");
+      advisorRunning = true;
+      try {
+        const model = choose(ctx, ROLE_REQUIREMENTS["think-advisor"]);
+        return toolResult(await runThinkAdvisor({ registry: ctx.modelRegistry, model, brief: params.brief, signal }));
+      } finally { advisorRunning = false; }
+    },
+  });
   pi.events.on(routerRoleEvent, (data) => {
     const request = data as { role?: string; complexity?: string; effectiveRole?: string | null; effectiveComplexity?: string | null; error?: string | null };
     if (!request || typeof request !== "object" || typeof request.role !== "string") return;
@@ -194,17 +245,11 @@ export default function (pi: ExtensionAPI) {
         ctx.ui.notify(`${error instanceof Error ? error.message : error}. Use /router-role to choose a valid role.`, "error");
         return;
       }
-      const profile = ROLE_REQUIREMENTS[role];
-      const selection = ctx.model ? `${ctx.model.provider}/${ctx.model.id}` : "unknown";
-      const routed = selection === `${ROUTER_PROVIDER}/auto`;
-      const lastResponse = ctx.sessionManager.getBranch().findLast(
-        (entry) => entry.type === "message" && entry.message.role === "assistant",
-      );
-      const message = lastResponse?.type === "message" && lastResponse.message.role === "assistant"
-        ? lastResponse.message : undefined;
-      const physical = message?.provider && message.model && message.provider !== ROUTER_PROVIDER
-        ? `${message.provider}/${message.model}`
-        : "unknown (no physical response metadata on this branch)";
+      const state = routerStatus(ctx);
+      const profile = state.requirements;
+      const selection = state.selectedModel;
+      const routed = state.routingActive;
+      const physical = state.lastPhysicalResponseModel ?? "unknown (no physical response metadata on this branch)";
       ctx.ui.notify([
         `Role: ${role}; base requirements: ${JSON.stringify(profile)}; complexity: ${getRouterComplexity()}`,
         `Selected model: ${selection}; routing: ${routed ? "active for the next user request" : "inactive (select router/auto to apply this role)"}`,
